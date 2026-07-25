@@ -1,12 +1,27 @@
+const { Schema, model } = require('mongoose');
+
 /**
- * Модель User (аркуш Users).
- * У JS це не ORM-клас, а опис форми сутності - для документації
- * та як орієнтир при валідації/мапінгу даних.
- *
- * @typedef {Object} User
- * @property {string} user_id - Унікальний ідентифікатор користувача
- * @property {string} name - Ім'я та прізвище
- * @property {boolean} is_driver - Ознака водія
- * @property {string} telegram_id - Telegram ID (для інтеграції з ботом)
+ * Модель User (колекція users).
+ * toJSON.transform мапить Mongo _id на user_id, щоб зовнішній API-контракт
+ * (user_id, shift_id, record_id тощо) не залежав від конкретної СУБД.
  */
-module.exports = {};
+const userSchema = new Schema(
+  {
+    name: { type: String, required: true, trim: true, minlength: 2, maxlength: 200 },
+    is_driver: { type: Boolean, default: false },
+    telegram_id: { type: String, default: '', trim: true },
+  },
+  {
+    timestamps: true,
+    toJSON: {
+      transform: (_doc, ret) => {
+        ret.user_id = ret._id.toString();
+        delete ret._id;
+        delete ret.__v;
+        return ret;
+      },
+    },
+  }
+);
+
+module.exports = model('User', userSchema);

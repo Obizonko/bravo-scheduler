@@ -1,13 +1,18 @@
-const GoogleSheetsRepository = require('./GoogleSheetsRepository');
 const { config } = require('../config/env');
+const GoogleSheetsRepository = require('./GoogleSheetsRepository');
+const MongoRepository = require('./MongoRepository');
 
 /**
  * Репозиторій користувачів.
- * Обраний драйвер визначається config.dbDriver - на цьому етапі
- * реалізовано лише google_sheets, але тут легко додати гілку
- * для postgres/mongo, повернувши інший клас з тим самим інтерфейсом.
+ * Обраний драйвер визначається config.dbDriver (.env: DB_DRIVER).
+ * Services/controllers працюють лише з інтерфейсом BaseRepository
+ * і не залежать від того, яка гілка тут спрацює.
  */
 function createUserRepository() {
+  if (config.dbDriver === 'mongo') {
+    const UserModel = require('../models/User');
+    return new MongoRepository(UserModel, 'Користувача');
+  }
   if (config.dbDriver === 'google_sheets') {
     return new GoogleSheetsRepository(config.googleSheets.sheets.users, 'user_id', 'Користувача');
   }

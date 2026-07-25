@@ -10,7 +10,11 @@ const config = {
   port: parseInt(process.env.PORT, 10) || 3000,
   apiPrefix: process.env.API_PREFIX || '/api/v1',
 
-  dbDriver: process.env.DB_DRIVER || 'google_sheets',
+  dbDriver: process.env.DB_DRIVER || 'mongo',
+
+  mongo: {
+    uri: process.env.MONGO_URI,
+  },
 
   googleSheets: {
     spreadsheetId: process.env.GOOGLE_SHEETS_SPREADSHEET_ID,
@@ -34,6 +38,12 @@ const config = {
 };
 
 function assertRequiredConfig() {
+  if (config.dbDriver === 'mongo') {
+    if (!config.mongo.uri) {
+      throw new Error('Відсутня обовʼязкова змінна середовища для MongoDB: MONGO_URI');
+    }
+  }
+
   if (config.dbDriver === 'google_sheets') {
     const required = [
       ['GOOGLE_SHEETS_SPREADSHEET_ID', config.googleSheets.spreadsheetId],

@@ -23,6 +23,7 @@
   "dependencies": {
     "express": "^4.19.2",
     "dotenv": "^16.4.5",
+    "mongoose": "^8.5.1",
     "google-auth-library": "^9.11.0",
     "googleapis": "^140.0.1",
     "joi": "^17.13.3",
