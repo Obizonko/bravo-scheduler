@@ -2,11 +2,8 @@ const logger = require('../utils/logger');
 const { AppError } = require('../utils/AppError');
 const { config } = require('../config/env');
 
-/**
- * Централізований обробник помилок.
- * Має бути підключений ОСТАННІМ у ланцюжку middleware в app.js.
- */
-// eslint-disable-next-line no-unused-vars
+/* Має бути підключений ОСТАННІМ у ланцюжку middleware в app.js.*/
+
 function errorHandler(err, req, res, next) {
   const isOperational = err instanceof AppError;
   const statusCode = isOperational ? err.statusCode : 500;

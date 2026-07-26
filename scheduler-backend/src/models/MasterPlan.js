@@ -1,7 +1,7 @@
 const { Schema, model } = require('mongoose');
 
 /**
- * Модель MasterPlan (колекція master_plans) - план виконання робіт.
+ * Модель MasterPlan - план виконання робіт
  */
 const masterPlanSchema = new Schema(
   {

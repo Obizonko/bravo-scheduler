@@ -1,9 +1,7 @@
 const { Schema, model } = require('mongoose');
 
 /**
- * Модель User (колекція users).
- * toJSON.transform мапить Mongo _id на user_id, щоб зовнішній API-контракт
- * (user_id, shift_id, record_id тощо) не залежав від конкретної СУБД.
+ * Модель User
  */
 const userSchema = new Schema(
   {

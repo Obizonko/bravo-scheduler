@@ -1,12 +1,12 @@
-# HR Scheduler Backend
+# Scheduler Backend
 
 Backend API для системи планування змін та графіків співробітників.
 Побудований на **Node.js + Express**, з дотриманням принципів **Clean Architecture** та **SOLID**.
 
 Як база даних використовується **MongoDB (Mongoose)**. Шар доступу до даних абстраговано
-через спільний контракт `BaseRepository`, тож перехід на іншу СУБД (або повернення до
-Google Sheets - реалізація також є в проєкті) не вимагає змін у бізнес-логіці
-(services/controllers) - лише перемикання `DB_DRIVER` у `.env`.
+через спільний контракт `BaseRepository`, тож перехід на іншу СУБД (наприклад PostgreSQL)
+не вимагає змін у бізнес-логіці (services/controllers) - лише додавання нового репозиторію
+за тим самим інтерфейсом.
 
 ## Архітектура
 
@@ -16,13 +16,13 @@ src/
 ├── controllers/     # HTTP-шар: приймає req, викликає service, формує res
 ├── services/        # Бізнес-логіка, правила, перевірки цілісності
 ├── repositories/     # Доступ до даних. BaseRepository - контракт,
-│                      MongoRepository - поточна реалізація (є й GoogleSheetsRepository)
+│                      MongoRepository - реалізація поверх Mongoose
 ├── models/           # Mongoose-схеми (User, Shift, Schedule, MasterPlan)
 ├── routes/           # Express-роути, звʼязок URL -> controller
 ├── middlewares/       # validate, errorHandler, requestLogger
 ├── validators/        # Joi-схеми валідації вхідних даних
 ├── utils/             # logger, AppError та інші допоміжні класи
-├── database/          # mongoClient (Mongoose-підключення) та sheetsClient (Google Sheets API)
+├── database/          # mongoClient - підключення до MongoDB через Mongoose
 ├── app.js             # Збірка Express-застосунку (middlewares + routes)
 └── server.js           # Точка входу: підключення до БД + запуск HTTP-сервера
 ```
@@ -34,8 +34,7 @@ src/
 - `repositories` реалізують спільний контракт `BaseRepository` (`findAll`, `findById`, `create`,
   `update`, `delete`). Щоб перейти на іншу СУБД, достатньо створити новий репозиторій
   (наприклад, `PostgresUserRepository`) з тим самим інтерфейсом і підключити його
-  у файлі `src/repositories/userRepository.js` (за прапорцем `DB_DRIVER` з `.env`,
-  підтримувані значення: `mongo` | `google_sheets`).
+  у файлі `src/repositories/userRepository.js`.
 
 ## Структура даних (MongoDB)
 
