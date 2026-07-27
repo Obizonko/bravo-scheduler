@@ -4,8 +4,8 @@ const { NotFoundError } = require('../utils/AppError');
 
 /**
  * Універсальна реалізація репозиторію поверх Mongoose.
- * Реалізує той самий контракт BaseRepository, що й GoogleSheetsRepository -
- * services нічого не знають про те, яка СУБД використовується під капотом.
+ * Реалізує спільний контракт BaseRepository, тому services/controllers
+ * не залежать від конкретної СУБД під капотом.
  */
 class MongoRepository extends BaseRepository {
   /**

@@ -1,7 +1,7 @@
 {
   "name": "hr-scheduler-backend",
   "version": "1.0.0",
-  "description": "Backend API для системи планування змін (Google Sheets як БД, з можливістю переходу на PostgreSQL/MongoDB)",
+  "description": "Backend API для системи планування змін та графіків співробітників (Google Sheets як БД, з можливістю переходу на PostgreSQL/MongoDB)",
   "main": "src/server.js",
   "type": "commonjs",
   "scripts": {

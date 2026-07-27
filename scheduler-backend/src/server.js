@@ -2,12 +2,26 @@ const app = require('./app');
 const { config, assertRequiredConfig } = require('./config/env');
 const logger = require('./utils/logger');
 
+/**
+ * Гарантовано виводить помилку і завершує процес.
+ * process.exit() одразу після асинхронного логера (Winston) на Windows
+ * може "обірвати" запис до консолі/файлу раніше, ніж він встигне вивестись -
+ * тому дублюємо повідомлення в console.error (синхронний вивід) і даємо
+ * невелику затримку перед виходом, щоб транспорти Winston встигли дописати.
+ */
+function fatal(message, err) {
+  // eslint-disable-next-line no-console
+  console.error(`\n[FATAL] ${message}${err ? `: ${err.message}` : ''}\n`);
+  logger.error(message, err ? { error: err.message, stack: err.stack } : undefined);
+  setTimeout(() => process.exit(1), 200);
+}
+
 async function start() {
   try {
     assertRequiredConfig();
   } catch (err) {
-    logger.error(`Помилка конфігурації: ${err.message}`);
-    process.exit(1);
+    fatal('Помилка конфігурації', err);
+    return;
   }
 
   if (config.dbDriver === 'mongo') {
@@ -15,8 +29,8 @@ async function start() {
     try {
       await connectMongo();
     } catch (err) {
-      logger.error(`Не вдалося підключитися до MongoDB: ${err.message}`);
-      process.exit(1);
+      fatal('Не вдалося підключитися до MongoDB', err);
+      return;
     }
   }
 
@@ -26,9 +40,13 @@ async function start() {
     logger.info(`Драйвер БД: ${config.dbDriver}`);
   });
 
+  server.on('error', (err) => {
+    fatal('Помилка HTTP-сервера', err);
+  });
+
   process.on('unhandledRejection', (reason) => {
-    logger.error('Unhandled Rejection:', reason);
-    server.close(() => process.exit(1));
+    const err = reason instanceof Error ? reason : new Error(String(reason));
+    fatal('Unhandled Rejection', err);
   });
 
   process.on('SIGTERM', () => {

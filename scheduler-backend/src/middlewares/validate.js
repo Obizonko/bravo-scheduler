@@ -2,7 +2,7 @@ const { ValidationError } = require('../utils/AppError');
 
 /**
  * Middleware-фабрика для валідації req.body за Joi-схемою.
-У разі помилки формує єдиний ValidationError, який ловить errorHandler.
+ * У разі помилки формує єдиний ValidationError, який ловить errorHandler.
  */
 function validate(schema) {
   return (req, res, next) => {

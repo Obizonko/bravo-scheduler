@@ -1,7 +1,10 @@
 require('dotenv').config();
 
-/*Централізована конфігурація застосунку.*/
-
+/**
+ * Централізована конфігурація застосунку.
+ * Всі змінні середовища читаються тільки тут - решта коду
+ * імпортує вже готовий обʼєкт config.
+ */
 const config = {
   env: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT, 10) || 3000,
