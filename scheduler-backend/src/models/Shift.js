@@ -3,7 +3,7 @@ const { Schema, model } = require('mongoose');
 const SERVICE_TYPES = ['Склад', 'ТЕЦ', 'Поїздка', 'Зовнішня активність'];
 
 /**
- * Модель Shift (колекція shifts) - довідник змін (таймслотів).
+ * Модель Shift (колекція shifts) - довідник змін (таймслотів)
  */
 const shiftSchema = new Schema(
   {

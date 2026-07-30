@@ -4,8 +4,6 @@ const STATUSES = ['Assigned', 'Replacement', 'Completed'];
 
 /**
  * Модель Schedule (колекція schedules) - звʼязує User та Shift.
- * shift_id/user_id зберігаються як реальні посилання (ObjectId ref),
- * що дає змогу використовувати .populate() при потребі.
  */
 const scheduleSchema = new Schema(
   {
