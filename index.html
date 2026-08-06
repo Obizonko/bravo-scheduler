@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bravo | Мій розклад</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/style.css">
+
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+
+<body>
+
+<div class="layout">
+
+    <!-- Sidebar -->
+
+    <aside class="sidebar">
+
+        <div class="logo">
+            <span class="logo-dot"></span>
+            <h2>Bravo</h2>
+        </div>
+
+        <nav>
+
+            <a href="index.html" class="nav-item active">
+                <i data-lucide="calendar-days"></i>
+                <span>Мій розклад</span>
+            </a>
+
+            <a class="nav-item">
+                <i data-lucide="activity"></i>
+                <span>Моніторинг</span>
+            </a>
+
+            <a class="nav-item">
+                <i data-lucide="settings"></i>
+                <span>Налаштування</span>
+            </a>
+
+        </nav>
+
+    </aside>
+
+    <!-- Main -->
+
+    <main class="main">
+
+        <header class="topbar">
+
+            <div>
+
+                <h1>Доброго дня, Артем</h1>
+                <p>Четвер, 7 серпня</p>
+
+            </div>
+
+            <div class="profile">
+
+                <span class="status online"></span>
+
+                <div class="profile-info">
+
+                    <strong>Артем</strong>
+                    <small>Онлайн</small>
+
+                </div>
+
+                <img src="assets/avatar.png" alt="Avatar">
+
+            </div>
+
+        </header>
+
+        <section class="dashboard">
+
+            <!-- Next shift -->
+
+            <article class="card next-shift">
+
+                <div class="card-header">
+
+                    <h3>Наступна зміна</h3>
+
+                    <span class="badge warning">
+                        Через 25 хв
+                    </span>
+
+                </div>
+
+                <div class="shift-main">
+
+                    <div class="shift-icon">
+
+                        <i data-lucide="package"></i>
+
+                    </div>
+
+                    <div>
+
+                        <h2>Склад</h2>
+
+                        <p>14:00 — 17:00</p>
+
+                    </div>
+
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="coworkers">
+
+                    <span>Разом на зміні</span>
+
+                    <div class="people">
+
+                        <div class="person">Марія</div>
+
+                        <div class="person">Олександр</div>
+
+                    </div>
+
+                </div>
+
+                <button class="primary-btn">
+
+                    Деталі зміни
+
+                </button>
+
+            </article>
+
+            <!-- Timeline -->
+
+            <article class="card timeline">
+
+                <h3>Мій день</h3>
+
+                <div class="timeline-item active">
+
+                    <span class="time">09:00</span>
+
+                    <div>
+
+                        <strong>Ранковий збір</strong>
+
+                        <p>Штаб</p>
+
+                    </div>
+
+                </div>
+
+                <div class="timeline-item">
+
+                    <span class="time">14:00</span>
+
+                    <div>
+
+                        <strong>Склад</strong>
+
+                        <p>Наступна зміна</p>
+
+                    </div>
+
+                </div>
+
+                <div class="timeline-item">
+
+                    <span class="time">18:00</span>
+
+                    <div>
+
+                        <strong>Вільний час</strong>
+
+                    </div>
+
+                </div>
+
+            </article>
+
+            <!-- Reminders -->
+
+            <article class="card reminders">
+
+                <h3>Побутові нагадування</h3>
+
+                <ul>
+
+                    <li>💧 Душ </li>
+
+                    <li>🔋 Заряди рацію</li>
+
+                    <li>🦺 Не забудь бейдж</li>
+
+                </ul>
+
+            </article>
+
+            <!-- Replace -->
+
+            <article class="card replace">
+
+                <h3>Потрібна заміна?</h3>
+
+                <p>
+
+                    Якщо не можеш вийти на зміну —
+                    повідом координатора завчасно.
+
+                </p>
+
+                <button class="outline-btn">
+
+                    Попросити заміну
+
+                </button>
+
+            </article>
+
+        </section>
+
+    </main>
+
+</div>
+
+<script>
+    lucide.createIcons();
+</script>
+
+</body>
+</html>
