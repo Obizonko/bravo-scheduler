@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Bravo | Моніторинг</title>
+
+    <link rel="stylesheet" href="css/style.css">
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+</head>
+
+
+<body>
+
+
+<div class="layout">
+
+
+
+<!-- Sidebar -->
+
+<aside class="sidebar">
+
+    <div class="logo">
+        <span class="logo-dot"></span>
+        <h2>Bravo</h2>
+    </div>
+
+
+    <nav>
+
+        <a href="index.html" class="nav-item">
+            <i data-lucide="calendar-days"></i>
+            <span>Мій розклад</span>
+        </a>
+
+
+        <a href="monitoring.html" class="nav-item active">
+            <i data-lucide="activity"></i>
+            <span>Моніторинг</span>
+        </a>
+
+
+        <a href="settings.html" class="nav-item">
+            <i data-lucide="settings"></i>
+            <span>Налаштування</span>
+        </a>
+
+
+    </nav>
+
+
+</aside>
+
+
+
+
+
+<!-- MAIN -->
+
+<main class="main">
+
+
+
+<header class="topbar">
+
+    <div>
+
+        <h1>Моніторинг</h1>
+
+        <p>Поточний стан служб</p>
+
+    </div>
+
+
+
+    <div class="profile">
+
+
+        <img src="assets/avatar.png" alt="avatar">
+
+
+        <div class="profile-info">
+
+            <strong>Артем</strong>
+
+            <small>Онлайн</small>
+
+        </div>
+
+
+        <span class="status online"></span>
+
+
+    </div>
+
+
+</header>
+
+
+
+
+
+<section class="monitor-grid">
+
+
+
+<!-- Склад -->
+
+<div class="card monitor-card">
+
+
+    <div class="monitor-header">
+
+
+        <div class="service-icon warehouse">
+
+            <i data-lucide="package"></i>
+
+        </div>
+
+
+        <span class="badge success">
+            Укомплектовано
+        </span>
+
+
+    </div>
+
+
+
+    <h3>Склад</h3>
+
+    <h2>4 / 5</h2>
+
+    <p>Потрібен ще 1 волонтер</p>
+
+
+</div>
+
+
+
+
+
+<!-- ТЕЦ -->
+
+<div class="card monitor-card">
+
+
+    <div class="monitor-header">
+
+
+        <div class="service-icon tec">
+
+            <i data-lucide="zap"></i>
+
+        </div>
+
+
+        <span class="badge warning">
+            Увага
+        </span>
+
+
+    </div>
+
+
+
+    <h3>ТЕЦ</h3>
+
+    <h2>2 / 3</h2>
+
+    <p>Не вистачає 1 людини</p>
+
+
+</div>
+
+
+
+
+
+
+
+<!-- Активності -->
+
+<div class="card monitor-card">
+
+
+    <div class="monitor-header">
+
+
+        <div class="service-icon activity">
+
+            <i data-lucide="flag"></i>
+
+        </div>
+
+
+        <span class="badge success">
+            Повністю
+        </span>
+
+
+    </div>
+
+
+
+    <h3>Активності</h3>
+
+    <h2>6 / 6</h2>
+
+    <p>Команда сформована</p>
+
+
+</div>
+
+
+
+
+
+
+
+<!-- Водії -->
+
+<div class="card monitor-card">
+
+
+    <div class="monitor-header">
+
+
+        <div class="service-icon drivers">
+
+            <i data-lucide="car"></i>
+
+        </div>
+
+
+        <span class="badge success">
+            Укомплектовано
+        </span>
+
+
+    </div>
+
+
+
+    <h3>Водії</h3>
+
+    <h2>3 / 3</h2>
+
+    <p>Усі на місці</p>
+
+
+</div>
+
+
+
+
+
+
+
+
+<!-- Останні зміни -->
+
+<div class="card monitor-log">
+
+
+    <div class="card-header">
+
+        <h3>Останні зміни</h3>
+
+    </div>
+
+
+
+    <div class="log-list">
+
+
+        <div class="log-item">
+
+            <span class="log-dot success"></span>
+
+            <div>
+
+                <strong>Марія перейшла на ТЕЦ</strong>
+
+                <p>2 хв тому</p>
+
+            </div>
+
+        </div>
+
+
+
+
+        <div class="log-item">
+
+            <span class="log-dot warning"></span>
+
+            <div>
+
+                <strong>Склад потребує ще одного волонтера</strong>
+
+                <p>7 хв тому</p>
+
+            </div>
+
+        </div>
+
+
+
+
+        <div class="log-item">
+
+            <span class="log-dot success"></span>
+
+            <div>
+
+                <strong>Олександр завершив зміну</strong>
+
+                <p>18 хв тому</p>
+
+            </div>
+
+        </div>
+
+
+
+
+        <div class="log-item">
+
+            <span class="log-dot success"></span>
+
+            <div>
+
+                <strong>Водії повністю укомплектовані</strong>
+
+                <p>35 хв тому</p>
+
+            </div>
+
+        </div>
+
+
+
+    </div>
+
+
+</div>
+
+
+
+
+</section>
+
+
+
+</main>
+
+
+
+</div>
+
+
+
+
+
+<script>
+
+    lucide.createIcons();
+
+</script>
+
+
+
+</body>
+
+</html>
