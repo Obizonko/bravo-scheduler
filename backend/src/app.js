@@ -1,4 +1,5 @@
 require('express-async-errors'); // дозволяє async-функціям в controllers кидати помилки в errorHandler без try/catch
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -9,22 +10,16 @@ const requestLogger = require('./middlewares/requestLogger');
 const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler');
 
 const app = express();
+const frontendDir = path.join(__dirname, '../../frontend');
 
-app.use(helmet());
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: config.cors.origin }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger);
 
 app.use(config.apiPrefix, routes);
-
-app.get('/', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'HR Scheduler Backend API',
-    apiPrefix: config.apiPrefix,
-  });
-});
+app.use(express.static(frontendDir));
 
 app.use(notFoundHandler);
 app.use(errorHandler);
