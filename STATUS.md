@@ -90,23 +90,20 @@ docker compose up -d --build
 `deploy/Caddyfile` уже в репозиторії - готовий на майбутнє, якщо колись
 захочеться додати домен + автоматичний HTTPS (просто зараз пропущено).
 
+## Git
+
+Оригінальний `Oleh3542/scheduler.git` лишався недоступний для push
+(`403: Permission ... denied to Obizonko` - закешований у Windows Git
+Credential Manager акаунт `Obizonko` не мав прав запису). Розв'язано:
+код перенесено у власний репозиторій під тим самим акаунтом:
+
+- `origin` → `https://github.com/Obizonko/bravo-scheduler.git` (публічний,
+  весь код запушено сюди, `master` - основна гілка)
+- `upstream` → `https://github.com/Oleh3542/scheduler.git` (лишено як
+  посилання на оригінал, на випадок якщо колись знадобиться Pull Request)
+
 ## Відкриті питання / незавершене
 
-- **git push заблокований**: `origin` = `https://github.com/Oleh3542/scheduler.git`,
-  push видає `403: Permission to Oleh3542/scheduler.git denied to Obizonko`
-  - у Windows Git Credential Manager закешований акаунт `Obizonko`, який не
-    має прав запису в цей репозиторій. Весь код цієї сесії закомічено
-    локально (гілка `master`, комміт `5324a1c` + попередні 7), **push не
-    пройшов**. Варіанти вирішення:
-    1. Якщо `Oleh3542` - основний акаунт власника: очистити закешовані
-       git-креденшли в Windows Credential Manager (шукати записи
-       `git:https://github.com`) і зробити push заново - GCM перепитає
-       логін, увійти під `Oleh3542`.
-    2. Якщо `Obizonko` - робочий акаунт: попросити власника `Oleh3542`
-       додати `Obizonko` як collaborator у налаштуваннях репозиторію на
-       GitHub (Settings → Collaborators).
-    3. Форкнути репозиторій під `Obizonko` і запушити туди, далі відкрити
-       Pull Request в `Oleh3542/scheduler`.
 - **Rate-limit на PIN**: `/api/v1/auth/pin` без обмеження спроб - не
   критично для короткої події, але якщо колись піде публічний тривалий
   доступ - варто додати `express-rate-limit`.
