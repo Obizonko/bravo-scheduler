@@ -218,6 +218,9 @@ class WeekCalendar {
         this.container.querySelectorAll('.wc-assign-select').forEach((select) => {
             select.addEventListener('change', (e) => this.onAssignSlot(e));
         });
+        this.container.querySelectorAll('.wc-replace-select').forEach((select) => {
+            select.addEventListener('change', (e) => this.onReplaceAssignment(e));
+        });
         this.container.querySelectorAll('.wc-bar-remove').forEach((btn) => {
             btn.addEventListener('click', (e) => this.onRemoveAssignment(e));
         });
@@ -226,6 +229,9 @@ class WeekCalendar {
         });
         this.container.querySelectorAll('.wc-resize-handle').forEach((handle) => {
             handle.addEventListener('mousedown', (e) => this.onResizeMouseDown(e));
+        });
+        this.container.querySelectorAll('.wc-bar').forEach((bar) => {
+            bar.addEventListener('mousedown', (e) => this.onBarMouseDown(e, bar));
         });
 
         const scrollEl = this.container.querySelector('.wc-scroll');
@@ -252,10 +258,17 @@ class WeekCalendar {
                 : '';
             const resizeHandle = Session.isLead()
                 ? `<span class="wc-resize-handle" data-shift-id="${shift.shift_id}"></span>` : '';
+            // Лід бачить select замість статичного імені - вибір іншої людини одразу
+            // замінює призначення (зняти стару + призначити нову), без окремих кроків.
+            const nameOrReplace = Session.isLead()
+                ? `<select class="wc-replace-select" data-shift-id="${shift.shift_id}" data-record-id="${assignee.record_id}">
+                       ${this.peopleOptionsHtml(assignee.user_id)}
+                   </select>`
+                : `<span class="wc-bar-name">${assignee.name}${driverMark}</span>`;
             return `
                 <div class="wc-bar wc-bar-filled" style="top:${top}px; height:${height}px;" data-shift-id="${shift.shift_id}">
                     <span class="wc-bar-time">${shift.time_start}–${shift.time_end}</span>
-                    <span class="wc-bar-name">${assignee.name}${driverMark}</span>
+                    ${nameOrReplace}
                     ${removeBtn}${resizeHandle}
                 </div>
             `;
@@ -279,9 +292,10 @@ class WeekCalendar {
         `;
     }
 
-    peopleOptionsHtml() {
+    /** selectedUserId заданий - позначає поточного призначеного як обраний (для select-заміни). */
+    peopleOptionsHtml(selectedUserId) {
         return this.board.people
-            .map((p) => `<option value="${p.user_id}">${p.name}${p.is_driver ? ' (водій)' : ''}</option>`)
+            .map((p) => `<option value="${p.user_id}" ${p.user_id === selectedUserId ? 'selected' : ''}>${p.name}${p.is_driver ? ' (водій)' : ''}</option>`)
             .join('');
     }
 
@@ -333,6 +347,13 @@ class WeekCalendar {
             const height = Math.max(currentY - barTopPx, minToPx(MIN_DURATION_MIN));
             bar.style.height = `${height}px`;
             this.dragState.currentY = currentY;
+        } else if (this.dragState.mode === 'move') {
+            const { bar, barTopPx, barHeightPx, startClientY } = this.dragState;
+            const deltaY = e.clientY - startClientY;
+            if (Math.abs(deltaY) > CLICK_THRESHOLD_PX) this.dragState.moved = true;
+            const newTop = Math.min(Math.max(barTopPx + deltaY, 0), DAY_HEIGHT_PX - barHeightPx);
+            bar.style.top = `${newTop}px`;
+            this.dragState.newTopPx = newTop;
         }
     }
 
@@ -359,6 +380,10 @@ class WeekCalendar {
         } else if (state.mode === 'resize') {
             const newEndMin = snapMin(pxToMin(state.currentY !== undefined ? state.currentY : state.barTopPx));
             await this.resizeShift(state.shiftId, newEndMin);
+        } else if (state.mode === 'move' && state.moved) {
+            const newStartMin = snapMin(pxToMin(state.newTopPx));
+            const durationMin = pxToMin(state.barHeightPx);
+            await this.moveShift(state.shiftId, newStartMin, durationMin);
         }
     }
 
@@ -429,6 +454,83 @@ class WeekCalendar {
             showBanner('Слот видалено', 'success');
         } catch (err) {
             showBanner(err.message || 'Не вдалося видалити слот');
+        }
+        await this.load();
+    }
+
+    // --- Переміщення наявної події (перетягування самого бару, той самий день/колонка) ---
+
+    onBarMouseDown(e, bar) {
+        if (e.target.closest('.wc-resize-handle, .wc-bar-remove, .wc-bar-delete, .wc-assign-select, .wc-replace-select')) return;
+        if (!Session.isLead()) return;
+        e.preventDefault();
+
+        const track = bar.closest('.wc-lane-track');
+        const barTopPx = parseFloat(bar.style.top);
+        const barHeightPx = parseFloat(bar.style.height);
+
+        this.dragState = {
+            mode: 'move',
+            shiftId: bar.dataset.shiftId,
+            bar,
+            track,
+            barTopPx,
+            barHeightPx,
+            startClientY: e.clientY,
+            moved: false,
+        };
+    }
+
+    async moveShift(shiftId, newStartMin, durationMin) {
+        let startMin = Math.max(0, Math.min(newStartMin, 1440 - MIN_DURATION_MIN));
+        let endMin = startMin + durationMin;
+        if (endMin > 1440) {
+            endMin = 1440;
+            startMin = Math.max(0, endMin - durationMin);
+        }
+        try {
+            await Api.put(`/shifts/${shiftId}`, {
+                time_start: minToHm(startMin),
+                time_end: minToHm(endMin === 1440 ? 0 : endMin),
+            });
+            showBanner('Час зміни оновлено', 'success');
+        } catch (err) {
+            showBanner(err.message || 'Не вдалося перемістити зміну');
+        }
+        await this.load();
+    }
+
+    async onReplaceAssignment(e) {
+        const select = e.currentTarget;
+        const shiftId = select.dataset.shiftId;
+        const oldRecordId = select.dataset.recordId;
+        const newUserId = select.value;
+        if (!newUserId) return;
+
+        try {
+            // Спершу знімаємо стару людину, і лише ПОТІМ перевіряємо нову - інакше
+            // рушій бачить зміну як уже заповнену (стара людина ще формально на
+            // ній) і на односайтових слотах (max_people:1, найчастіший випадок)
+            // ЗАВЖДИ повертав би SHIFT_CAPACITY_EXCEEDED навіть для звичайної заміни.
+            await Api.del(`/schedule/${oldRecordId}`);
+
+            const check = await Api.post('/schedule/check', { shift_id: shiftId, user_id: newUserId });
+            if (!check.ok) {
+                const proceed = window.confirm(
+                    'Знайдено жорсткі порушення правил:\n\n' +
+                    check.violations.map((v) => '- ' + v.message).join('\n') +
+                    '\n\nВсе одно замінити?'
+                );
+                if (!proceed) { await this.load(); return; }
+            }
+            await Api.post('/schedule', { shift_id: shiftId, user_id: newUserId });
+            if (check.warnings.length > 0) {
+                showBanner('Людину замінено. Увага: ' + check.warnings.map((w) => w.message).join('; '), 'error');
+            } else {
+                showBanner('Людину замінено', 'success');
+            }
+        } catch (err) {
+            showBanner(err.message || 'Не вдалося замінити людину');
         }
         await this.load();
     }

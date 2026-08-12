@@ -735,6 +735,12 @@
     overflow: hidden;
     padding: 2px 4px;
     box-sizing: border-box;
+    cursor: grab;
+    user-select: none;
+}
+
+.wc-bar:active {
+    cursor: grabbing;
 }
 
 /* Сіре накладення там, де за поточним рівнем навантаження ця колонка "не потрібна" -
@@ -801,6 +807,21 @@
     margin-top: 1px;
 }
 
+/* Select заміни на заповненому барі - виглядає як звичайний текст імені
+   (wc-bar-name), але залишається клікабельним для швидкої заміни людини. */
+.wc-replace-select {
+    display: block;
+    width: 100%;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 600;
+    border: none;
+    background: none;
+    color: inherit;
+    padding: 0;
+    cursor: pointer;
+}
+
 .wc-resize-handle {
     position: absolute;
     left: 0;
@@ -825,7 +846,6 @@
     background: #E0EDFF;
     border: 1px solid #93B4E8;
     color: #1E3A6E;
-    cursor: pointer;
 }
 
 .mp-bar:hover {

@@ -29,6 +29,11 @@ class MasterPlanBoard {
         this.activities = null;
         this.dragState = null;
         this._scrolledOnce = false;
+        // Пригнічує клік-по-бару (відкриття модалки) одразу після реального
+        // перетягування - інакше після drag-переміщення миттю ще й відкривалась
+        // би модалка редагування, бо mouseup на тому самому елементі завжди
+        // додатково породжує нативну подію 'click'.
+        this._suppressClick = false;
 
         document.addEventListener('mousemove', (e) => this.onDocMouseMove(e));
         document.addEventListener('mouseup', () => this.onDocMouseUp());
@@ -102,7 +107,10 @@ class MasterPlanBoard {
 
         const dates = this.weekDates;
         const perDay = dates.map((date) => this.autoPackLanes(this.activitiesForDate(date)));
-        const lanes = Math.max(1, ...perDay.map((d) => d.laneCount));
+        // +1 - завжди лишаємо одну порожню доріжку понад мінімально потрібну, інакше
+        // немає де клікнути/потягнути, щоб додати ще одну паралельну активність у
+        // проміжок, який уже повністю зайнятий по всіх наявних доріжках.
+        const lanes = Math.max(1, ...perDay.map((d) => d.laneCount)) + 1;
         this.lanes = lanes;
 
         const dayHeaders = dates
@@ -139,8 +147,10 @@ class MasterPlanBoard {
             track.addEventListener('mousedown', (e) => this.onTrackMouseDown(e, track));
         });
         this.container.querySelectorAll('.mp-bar').forEach((bar) => {
+            bar.addEventListener('mousedown', (e) => this.onBarMouseDown(e, bar));
             bar.addEventListener('click', (e) => {
                 if (e.target.closest('.wc-resize-handle')) return;
+                if (this._suppressClick) { this._suppressClick = false; return; }
                 this.onBarClick(bar);
             });
         });
@@ -218,6 +228,13 @@ class MasterPlanBoard {
             const height = Math.max(currentY - barTopPx, minToPx(MIN_DURATION_MIN));
             bar.style.height = `${height}px`;
             this.dragState.currentY = currentY;
+        } else if (this.dragState.mode === 'move') {
+            const { bar, barTopPx, barHeightPx, startClientY } = this.dragState;
+            const deltaY = e.clientY - startClientY;
+            if (Math.abs(deltaY) > CLICK_THRESHOLD_PX) this.dragState.moved = true;
+            const newTop = Math.min(Math.max(barTopPx + deltaY, 0), DAY_HEIGHT_PX - barHeightPx);
+            bar.style.top = `${newTop}px`;
+            this.dragState.newTopPx = newTop;
         }
     }
 
@@ -244,6 +261,11 @@ class MasterPlanBoard {
         } else if (state.mode === 'resize') {
             const newEndMin = snapMin(pxToMin(state.currentY !== undefined ? state.currentY : state.barTopPx));
             await this.resizeActivity(state.activityId, newEndMin);
+        } else if (state.mode === 'move' && state.moved) {
+            this._suppressClick = true;
+            const newStartMin = snapMin(pxToMin(state.newTopPx));
+            const durationMin = pxToMin(state.barHeightPx);
+            await this.moveActivity(state.activityId, newStartMin, durationMin);
         }
     }
 
@@ -259,6 +281,52 @@ class MasterPlanBoard {
             showBanner('Активність створено - відредагуйте назву', 'success');
         } catch (err) {
             showBanner(err.message || 'Не вдалося створити активність');
+        }
+        await this.load();
+    }
+
+    // --- Переміщення наявної активності (перетягування самого бару, той самий день/доріжка) ---
+
+    onBarMouseDown(e, bar) {
+        if (e.target.closest('.wc-resize-handle')) return;
+        if (!Session.isLead()) return;
+        e.preventDefault();
+        // Скидаємо про всяк випадок - якщо попередній drag завершився поза
+        // документом (mouseup поза вікном), клік не спрацював би, і прапорець
+        // лишився б "застряглим" true, мовчки проковтнувши наступний клік.
+        this._suppressClick = false;
+
+        const track = bar.closest('.mp-track');
+        const barTopPx = parseFloat(bar.style.top);
+        const barHeightPx = parseFloat(bar.style.height);
+
+        this.dragState = {
+            mode: 'move',
+            activityId: bar.dataset.activityId,
+            bar,
+            track,
+            barTopPx,
+            barHeightPx,
+            startClientY: e.clientY,
+            moved: false,
+        };
+    }
+
+    async moveActivity(activityId, newStartMin, durationMin) {
+        let startMin = Math.max(0, Math.min(newStartMin, 1440 - MIN_DURATION_MIN));
+        let endMin = startMin + durationMin;
+        if (endMin > 1440) {
+            endMin = 1440;
+            startMin = Math.max(0, endMin - durationMin);
+        }
+        try {
+            await Api.put(`/master-plan/${activityId}`, {
+                time_start: minToHm(startMin),
+                time_end: minToHm(endMin === 1440 ? 0 : endMin),
+            });
+            showBanner('Час активності оновлено', 'success');
+        } catch (err) {
+            showBanner(err.message || 'Не вдалося перемістити активність');
         }
         await this.load();
     }
