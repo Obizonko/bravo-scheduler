@@ -618,6 +618,17 @@
     align-items: center;
     gap: 12px;
     margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+/* .outline-btn/.text-btn за замовчуванням width:100% (style.css) - у флекс-рядку
+   це змушує кожну кнопку тягнутись на всю ширину контейнера й ламає рядок
+   (особливо помітно на мобільній ширині, де рядок ще й вужчий). */
+.week-nav .outline-btn {
+    width: auto;
+    height: auto;
+    margin-top: 0;
+    padding: 10px 16px;
 }
 
 .week-nav strong {

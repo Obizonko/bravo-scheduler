@@ -464,6 +464,7 @@ class WeekCalendar {
 function initWeekCalendarPage(serviceType, defaultDurationMin, lanes, showWorkloadOverlay = false) {
     lucide.createIcons();
     renderAuthBadge(document.getElementById('authBadge'));
+    initMobileNav();
 
     const calendar = new WeekCalendar({
         container: document.getElementById('weekBoardContainer'),

@@ -100,6 +100,11 @@ img{
 
     padding:36px;
 
+    /* Без цього грід-елемент не стискається нижче max-content ширини свого
+       вмісту (типовий "grid blowout") - широкий тижневий календар усередині
+       розтягував би всю сторінку замість прокрутки в межах .wc-scroll. */
+    min-width:0;
+
 }
 
 
@@ -853,6 +858,20 @@ li{
 
 }
 
+/* ===========================
+   Мобільна навігація (<=576px): сайдбар стає висувною панеллю (drawer),
+   що відкривається гамбургер-кнопкою - раніше на цій ширині сайдбар просто
+   зникав без жодної заміни, і навігація між сторінками ставала неможливою.
+=========================== */
+
+.mobile-nav-toggle{
+    display:none;
+}
+
+.mobile-nav-backdrop{
+    display:none;
+}
+
 @media (max-width:576px){
 
     .layout{
@@ -861,15 +880,89 @@ li{
 
     }
 
+    .mobile-nav-toggle{
+
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        position:fixed;
+        top:16px;
+        left:16px;
+        width:44px;
+        height:44px;
+        border-radius:12px;
+        background:var(--sidebar);
+        color:white;
+        box-shadow:var(--shadow);
+        z-index:90;
+
+    }
+
+    .mobile-nav-toggle svg{
+        width:22px;
+        height:22px;
+    }
+
+    /* Ховаємо гамбургер, поки панель відкрита - інакше він накладається на
+       логотип "Bravo" у верхньому лівому куті самої панелі. */
+    body.mobile-nav-open .mobile-nav-toggle{
+        display:none;
+    }
+
     .sidebar{
 
-        display:none;
+        position:fixed;
+        inset:0 auto 0 0;
+        width:78vw;
+        max-width:280px;
+        transform:translateX(-100%);
+        transition:transform .25s ease;
+        z-index:81;
+        overflow-y:auto;
+
+    }
+
+    .sidebar.open{
+
+        transform:translateX(0);
+
+    }
+
+    /* Повна (не іконкова) версія всередині висувної панелі - на цій ширині
+       вона вже не стиснута в 90px смужку, як на планшетному брейкпоінті. */
+    .sidebar h2,
+    .nav-item span{
+
+        display:initial;
+
+    }
+
+    .logo{
+
+        justify-content:flex-start;
+
+    }
+
+    .nav-item{
+
+        justify-content:flex-start;
+
+    }
+
+    .mobile-nav-backdrop.open{
+
+        display:block;
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,.45);
+        z-index:80;
 
     }
 
     .main{
 
         padding:18px;
+        padding-top:76px;
 
     }
 

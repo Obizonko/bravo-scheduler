@@ -138,6 +138,52 @@ function hideBanner() {
   if (el) el.style.display = 'none';
 }
 
+/** Гамбургер-кнопка + затемнення для сайдбару на мобільній ширині (<=576px,
+ * див. style.css) - раніше сайдбар на цій ширині просто зникав без заміни,
+ * і навігація між сторінками ставала неможливою. Викликається одноразово
+ * з кожної сторінки, що має `.sidebar` (поруч з renderAuthBadge). */
+function initMobileNav() {
+  const sidebar = document.querySelector('.sidebar');
+  if (!sidebar || document.querySelector('.mobile-nav-toggle')) return;
+
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'mobile-nav-toggle';
+  toggle.setAttribute('aria-label', 'Меню');
+  toggle.innerHTML = '<i data-lucide="menu"></i>';
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'mobile-nav-backdrop';
+
+  document.body.appendChild(backdrop);
+  document.body.appendChild(toggle);
+
+  const close = () => {
+    sidebar.classList.remove('open');
+    backdrop.classList.remove('open');
+    document.body.classList.remove('mobile-nav-open');
+  };
+  const open = () => {
+    sidebar.classList.add('open');
+    backdrop.classList.add('open');
+    document.body.classList.add('mobile-nav-open');
+  };
+
+  toggle.addEventListener('click', () => {
+    if (sidebar.classList.contains('open')) close();
+    else open();
+  });
+  backdrop.addEventListener('click', close);
+  sidebar.querySelectorAll('a.nav-item').forEach((link) => {
+    link.addEventListener('click', close);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') close();
+  });
+
+  if (window.lucide) lucide.createIcons();
+}
+
 const SERVICE_TYPE_ICONS = {
   Склад: 'package',
   ТЕЦ: 'zap',

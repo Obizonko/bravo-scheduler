@@ -208,6 +208,7 @@ class DriverWeek {
 function initDriverWeekPage(defaultDurationMin) {
     lucide.createIcons();
     renderAuthBadge(document.getElementById('authBadge'));
+    initMobileNav();
 
     const board = new DriverWeek({ container: document.getElementById('weekBoardContainer'), defaultDurationMin });
 

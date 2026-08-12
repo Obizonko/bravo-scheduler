@@ -453,6 +453,7 @@ function openActivityEditModal(activity, occurrenceDate, board) {
 function initMasterPlanPage() {
     lucide.createIcons();
     renderAuthBadge(document.getElementById('authBadge'));
+    initMobileNav();
 
     const board = new MasterPlanBoard({ container: document.getElementById('weekBoardContainer') });
 
