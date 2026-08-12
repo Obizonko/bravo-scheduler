@@ -2,14 +2,13 @@
 <html lang="uk">
 
 <head>
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Bravo | Вхід</title>
 
     <link rel="stylesheet" href="css/style.css">
-
+    <link rel="stylesheet" href="css/app.css">
 </head>
 
 <body>
@@ -19,51 +18,65 @@
     <div class="login-card">
 
         <div class="login-logo">
-
             <div class="logo-dot"></div>
-
             <h1>Bravo</h1>
-
         </div>
 
-        <h2>Вхід у систему</h2>
-
+        <h2>Вхід для адмінів</h2>
         <p>
-            Авторизуйтесь, щоб переглянути свій розклад.
+            Введіть PIN голови команди або супер-адміна.
+            Звичайний перегляд («Люди», «Склад», «ТЕЦ») доступний усім без входу.
         </p>
 
-        <form>
+        <form id="pinForm">
+            <label for="pinInput">PIN</label>
+            <input id="pinInput" type="password" inputmode="numeric" autocomplete="off" placeholder="••••">
 
-            <label>Email</label>
-
-            <input
-                type="email"
-                placeholder="example@email.com">
-
-            <label>Пароль</label>
-
-            <input
-                type="password"
-                placeholder="••••••••">
-
-            <button class="primary-btn">
-
-                Увійти
-
-            </button>
-
+            <button class="primary-btn" type="submit">Увійти</button>
         </form>
 
-        <a href="#" class="forgot-password">
+        <div id="loginResult"></div>
 
-            Забули пароль?
+        <p class="login-role-hint">
+            PIN голови команди відкриває призначення людей на зміни (сторінки «Склад»/«ТЕЦ»).
+            PIN супер-адміна додатково відкриває сторінку «Адміни».
+        </p>
 
-        </a>
+        <a href="index.html" class="forgot-password">← До загального перегляду</a>
 
     </div>
 
 </div>
 
-</body>
+<script src="js/api.js"></script>
+<script>
+    const existing = Session.get();
+    if (existing) {
+        document.getElementById('loginResult').innerHTML =
+            `<p class="login-role-hint">Ви вже увійшли як <strong>${existing.role === 'super_admin' ? 'супер-адмін' : 'адмін'}</strong>.</p>`;
+    }
 
+    document.getElementById('pinForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const pin = document.getElementById('pinInput').value.trim();
+        const resultEl = document.getElementById('loginResult');
+        if (!pin) return;
+
+        resultEl.innerHTML = '<p class="login-role-hint">Перевірка...</p>';
+        try {
+            const data = await Api.post('/auth/pin', { pin });
+            Session.set(data.role, pin);
+            const label = data.role === 'super_admin' ? 'супер-адміна' : 'адміна';
+            resultEl.innerHTML = `<p class="login-role-hint">Успішно увійшли як ${label}. Переходимо...</p>`;
+            const target = data.role === 'super_admin' ? 'admins.html' : 'sklad.html';
+            setTimeout(() => {
+                window.location.href = target;
+            }, 600);
+        } catch (err) {
+            resultEl.innerHTML = `<p class="login-role-hint" style="color:var(--danger)">${err.message}</p>`;
+        }
+    });
+</script>
+
+</body>
 </html>

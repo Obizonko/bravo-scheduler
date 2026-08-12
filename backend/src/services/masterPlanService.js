@@ -7,8 +7,8 @@ class MasterPlanService {
     this.repository = repository;
   }
 
-  async getAll() {
-    return this.repository.findAll();
+  async getAll(filter = {}) {
+    return this.repository.findAll(filter);
   }
 
   async getById(id) {

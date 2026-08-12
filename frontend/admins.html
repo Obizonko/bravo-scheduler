@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Bravo | Адміни</title>
+
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/app.css">
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+
+<div class="layout">
+
+    <aside class="sidebar">
+        <div class="logo">
+            <span class="logo-dot"></span>
+            <h2>Bravo</h2>
+        </div>
+
+        <nav>
+            <a href="index.html" class="nav-item">
+                <i data-lucide="users"></i>
+                <span>Люди</span>
+            </a>
+            <a href="sklad.html" class="nav-item">
+                <i data-lucide="package"></i>
+                <span>Склад</span>
+            </a>
+            <a href="tec.html" class="nav-item">
+                <i data-lucide="zap"></i>
+                <span>ТЕЦ</span>
+            </a>
+            <a href="vodii.html" class="nav-item">
+                <i data-lucide="car"></i>
+                <span>Водії</span>
+            </a>
+            <a href="masterplan.html" class="nav-item">
+                <i data-lucide="calendar-clock"></i>
+                <span>Майстер-план</span>
+            </a>
+            <a href="monitoring.html" class="nav-item">
+                <i data-lucide="activity"></i>
+                <span>Моніторинг</span>
+            </a>
+            <a href="admins.html" class="nav-item active">
+                <i data-lucide="shield"></i>
+                <span>Адміни</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main">
+
+        <header class="topbar">
+            <div>
+                <h1>Адміни</h1>
+                <p>Призначення й зняття прав голови команди - лише для супер-адміна</p>
+            </div>
+            <div id="authBadge"></div>
+        </header>
+
+        <div id="content">
+            <div class="spinner-hint">Завантаження...</div>
+        </div>
+
+    </main>
+
+</div>
+
+<script src="js/api.js"></script>
+<script>
+    lucide.createIcons();
+    renderAuthBadge(document.getElementById('authBadge'));
+
+    const content = document.getElementById('content');
+
+    function roleBadgeHtml(role) {
+        if (role === 'lead') return '<span class="role-pill">Адмін</span>';
+        return '<span class="tag">Учасник(ця)</span>';
+    }
+
+    function renderGate() {
+        content.innerHTML = `
+            <div class="card empty-state">
+                <p>Ця сторінка доступна лише супер-адміну.</p>
+                <p style="margin-top:10px;">
+                    <a class="primary-btn" style="display:inline-block; text-decoration:none;" href="login.html">Увійти</a>
+                </p>
+            </div>
+        `;
+    }
+
+    let tableLoaded = false;
+
+    async function renderTable() {
+        // Спінер лише на першому завантаженні - інакше перемикання ролі щоразу
+        // на мить стирало б усю таблицю ("блимання").
+        if (!tableLoaded) content.innerHTML = '<div class="spinner-hint">Завантаження...</div>';
+        try {
+            const users = await Api.get('/users');
+            tableLoaded = true;
+            users.sort((a, b) => a.name.localeCompare(b.name, 'uk'));
+
+            const rows = users.map((u) => `
+                <tr data-user-id="${u.user_id}">
+                    <td>${u.name}${u.is_driver ? ' 🚗' : ''}</td>
+                    <td>${roleBadgeHtml(u.role)}</td>
+                    <td>
+                        <button type="button" class="role-toggle-btn" data-next-role="${u.role === 'lead' ? 'member' : 'lead'}">
+                            ${u.role === 'lead' ? 'Зняти права адміна' : 'Зробити адміном'}
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            content.innerHTML = `
+                <div class="card">
+                    <table class="admin-table">
+                        <thead>
+                            <tr><th>Імʼя</th><th>Роль</th><th></th></tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            `;
+
+            content.querySelectorAll('.role-toggle-btn').forEach((btn) => {
+                btn.addEventListener('click', onToggleRole);
+            });
+        } catch (err) {
+            if (!tableLoaded) content.innerHTML = '';
+            showBanner(err.message || 'Не вдалося завантажити список користувачів');
+        }
+    }
+
+    async function onToggleRole(e) {
+        const btn = e.currentTarget;
+        const row = btn.closest('tr');
+        const userId = row.dataset.userId;
+        const nextRole = btn.dataset.nextRole;
+        btn.disabled = true;
+        try {
+            await Api.put(`/users/${userId}`, { role: nextRole });
+            showBanner('Роль оновлено', 'success');
+            await renderTable();
+        } catch (err) {
+            showBanner(err.message || 'Не вдалося оновити роль');
+            btn.disabled = false;
+        }
+    }
+
+    if (!Session.isSuperAdmin()) {
+        renderGate();
+    } else {
+        renderTable();
+    }
+</script>
+
+</body>
+</html>

@@ -1,23 +1,26 @@
 {
   "name": "hr-scheduler-backend",
   "version": "1.0.0",
-  "description": "Backend API для системи планування змін та графіків співробітників (Google Sheets як БД, з можливістю переходу на PostgreSQL/MongoDB)",
+  "description": "Backend API для системи планування змін та графіків співробітників (MongoDB, з рушієм правил планування чергувань)",
   "main": "src/server.js",
   "type": "commonjs",
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "lint": "eslint src --ext .js",
-    "lint:fix": "eslint src --ext .js --fix",
-    "format": "prettier --write \"src/**/*.js\"",
-    "test": "echo \"No tests specified yet\" && exit 0"
+    "lint": "eslint src test scripts --ext .js",
+    "lint:fix": "eslint src test scripts --ext .js --fix",
+    "format": "prettier --write \"src/**/*.js\" \"test/**/*.js\" \"scripts/**/*.js\"",
+    "audit:time-formats": "node scripts/auditTimeFormats.js",
+    "test": "node --test --test-reporter=spec",
+    "test:watch": "node --test --watch"
   },
   "keywords": [
     "express",
     "rest-api",
-    "google-sheets",
+    "mongodb",
     "clean-architecture",
-    "scheduler"
+    "scheduler",
+    "rules-engine"
   ],
   "license": "MIT",
   "dependencies": {

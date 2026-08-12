@@ -1,0 +1,48 @@
+name: scheduler
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      API_PREFIX: /api/v1
+      DB_DRIVER: mongo
+      # Всередині мережі compose Mongo доступний за іменем сервісу, не localhost
+      MONGO_URI: mongodb://mongo:27017/hr_scheduler
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      RULES_ENFORCEMENT: ${RULES_ENFORCEMENT:-warn}
+      NIGHT_EMERGENCY_USER_ID: ${NIGHT_EMERGENCY_USER_ID:-}
+      NIGHT_KEY_LOCATION: ${NIGHT_KEY_LOCATION:-}
+      ADMIN_PIN: ${ADMIN_PIN:-}
+      SUPER_ADMIN_PIN: ${SUPER_ADMIN_PIN:-}
+      NOTIFICATIONS_WEBHOOK_URL: ${NOTIFICATIONS_WEBHOOK_URL:-}
+    volumes:
+      - backend_logs:/app/backend/logs
+
+volumes:
+  mongo_data:
+  backend_logs:

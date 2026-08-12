@@ -1,27 +1,41 @@
 const { ValidationError } = require('../utils/AppError');
 
+function toDetails(error) {
+  return error.details.map((d) => ({ field: d.path.join('.'), message: d.message }));
+}
+
 /**
- * Middleware-фабрика для валідації req.body за Joi-схемою.
- * У разі помилки формує єдиний ValidationError, який ловить errorHandler.
+ * Валідує req[source] (body/query/params) за Joi-схемою. Результат завжди
+ * кладеться і в req.validated.<source> (для нових контролерів), і - для body -
+ * дублюється в req.body (щоб жоден з 8 наявних викликів validate(schema) не
+ * зламався: вони читають req.body напряму, а не req.validated.body).
+ *
+ * req.query навмисно НЕ перезаписується для source === 'query' в Express 5:
+ * там req.query - геттер без сеттера, і пряме присвоєння кинуло б виняток.
+ * Нові контролери мають читати лише req.validated.query, щоб апгрейд Express
+ * 4 -> 5 був no-op.
  */
-function validate(schema) {
+function validateSource(schema, source) {
   return (req, res, next) => {
-    const { error, value } = schema.validate(req.body, {
+    const { error, value } = schema.validate(req[source], {
       abortEarly: false,
       stripUnknown: true,
     });
 
     if (error) {
-      const details = error.details.map((d) => ({
-        field: d.path.join('.'),
-        message: d.message,
-      }));
-      return next(new ValidationError(details));
+      return next(new ValidationError(toDetails(error)));
     }
 
-    req.body = value;
+    req.validated = req.validated || {};
+    req.validated[source] = value;
+    if (source === 'body') req.body = value;
+
     return next();
   };
 }
+
+const validate = (schema) => validateSource(schema, 'body');
+validate.query = (schema) => validateSource(schema, 'query');
+validate.params = (schema) => validateSource(schema, 'params');
 
 module.exports = validate;

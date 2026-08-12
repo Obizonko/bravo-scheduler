@@ -1,14 +1,24 @@
 const { Schema, model } = require('mongoose');
 
 /**
- * Модель MasterPlan (колекція master_plans) - план виконання робіт.
+ * Модель MasterPlan (колекція master_plans) - план виконання робіт (загальна програма).
+ * Використовується рушієм правил для виведення квоти чергування та перевірки буфера
+ * (src/services/rules/quota.js, buffers.js).
  */
 const masterPlanSchema = new Schema(
   {
     name_of_activity: { type: String, required: true, trim: true, minlength: 2, maxlength: 300 },
     time_start: { type: String, required: true },
     time_end: { type: String, required: true },
+    // 'workload' навмисно лишається вільним рядком у моделі (не enum): контрольований
+    // словник WORKLOAD_LEVELS enforce'иться лише в Joi на запис. Model-level enum зламав би
+    // findByIdAndUpdate на будь-якому старому рядку зі значенням поза словником.
     workload: { type: String, default: '' },
+    // Конкретна дата активності. null для повторюваних щоденних активностей (is_daily: true) -
+    // рушій правил матеріалізує is_daily-активність на кожну дату контексту.
+    date: { type: String, default: null },
+    is_daily: { type: Boolean, default: false },
+    activity_kind: { type: String, default: 'other', trim: true },
   },
   {
     timestamps: true,

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Bravo | Майстер-план</title>
+
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/app.css">
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+
+<div class="layout">
+
+    <aside class="sidebar">
+        <div class="logo">
+            <span class="logo-dot"></span>
+            <h2>Bravo</h2>
+        </div>
+
+        <nav>
+            <a href="index.html" class="nav-item">
+                <i data-lucide="users"></i>
+                <span>Люди</span>
+            </a>
+            <a href="sklad.html" class="nav-item">
+                <i data-lucide="package"></i>
+                <span>Склад</span>
+            </a>
+            <a href="tec.html" class="nav-item">
+                <i data-lucide="zap"></i>
+                <span>ТЕЦ</span>
+            </a>
+            <a href="vodii.html" class="nav-item">
+                <i data-lucide="car"></i>
+                <span>Водії</span>
+            </a>
+            <a href="masterplan.html" class="nav-item active">
+                <i data-lucide="calendar-clock"></i>
+                <span>Майстер-план</span>
+            </a>
+            <a href="monitoring.html" class="nav-item">
+                <i data-lucide="activity"></i>
+                <span>Моніторинг</span>
+            </a>
+            <a href="admins.html" class="nav-item">
+                <i data-lucide="shield"></i>
+                <span>Адміни</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main">
+
+        <header class="topbar">
+            <div>
+                <h1>Майстер-план</h1>
+                <p>Загальна програма табору - клікніть/потягніть, щоб додати активність. Кілька подій можуть іти паралельно.</p>
+            </div>
+            <div id="authBadge"></div>
+        </header>
+
+        <div class="week-nav">
+            <button type="button" class="outline-btn" id="prevWeekBtn">‹ Тиждень</button>
+            <strong id="weekLabel">—</strong>
+            <button type="button" class="outline-btn" id="nextWeekBtn">Тиждень ›</button>
+            <button type="button" class="text-btn" id="todayWeekBtn">До сьогодні</button>
+        </div>
+
+        <div id="weekBoardContainer">
+            <div class="spinner-hint">Завантаження...</div>
+        </div>
+
+    </main>
+
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/masterPlan.js"></script>
+<script>
+    initMasterPlanPage();
+</script>
+
+</body>
+</html>

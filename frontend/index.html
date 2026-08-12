@@ -2,338 +2,219 @@
 <html lang="uk">
 
 <head>
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Bravo | Мій розклад</title>
+    <title>Bravo | Люди</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/app.css">
 
     <script src="https://unpkg.com/lucide@latest"></script>
-
 </head>
-
 
 <body>
 
-
 <div class="layout">
 
-
-<!-- Sidebar -->
-
-<aside class="sidebar">
-
-    <div class="logo">
-        <span class="logo-dot"></span>
-        <h2>Bravo</h2>
-    </div>
-
-
-    <nav>
-
-        <a href="index.html" class="nav-item active">
-            <i data-lucide="calendar-days"></i>
-            <span>Мій розклад</span>
-        </a>
-
-
-        <a href="monitoring.html" class="nav-item">
-            <i data-lucide="activity"></i>
-            <span>Моніторинг</span>
-        </a>
-
-
-        <a href="settings.html" class="nav-item">
-            <i data-lucide="settings"></i>
-            <span>Налаштування</span>
-        </a>
-
-
-    </nav>
-
-</aside>
-
-
-
-<!-- Main -->
-
-<main class="main">
-
-
-<header class="topbar">
-
-    <div>
-
-        <h1>Доброго дня, Артем</h1>
-        <p>Четвер, 7 серпня</p>
-
-    </div>
-
-
-    <div class="profile">
-
-        <span class="status online"></span>
-
-
-        <div class="profile-info">
-
-            <strong>Артем</strong>
-            <small>Онлайн</small>
-
+    <aside class="sidebar">
+        <div class="logo">
+            <span class="logo-dot"></span>
+            <h2>Bravo</h2>
         </div>
 
+        <nav>
+            <a href="index.html" class="nav-item active">
+                <i data-lucide="users"></i>
+                <span>Люди</span>
+            </a>
+            <a href="sklad.html" class="nav-item">
+                <i data-lucide="package"></i>
+                <span>Склад</span>
+            </a>
+            <a href="tec.html" class="nav-item">
+                <i data-lucide="zap"></i>
+                <span>ТЕЦ</span>
+            </a>
+            <a href="vodii.html" class="nav-item">
+                <i data-lucide="car"></i>
+                <span>Водії</span>
+            </a>
+            <a href="masterplan.html" class="nav-item">
+                <i data-lucide="calendar-clock"></i>
+                <span>Майстер-план</span>
+            </a>
+            <a href="monitoring.html" class="nav-item">
+                <i data-lucide="activity"></i>
+                <span>Моніторинг</span>
+            </a>
+            <a href="admins.html" class="nav-item">
+                <i data-lucide="shield"></i>
+                <span>Адміни</span>
+            </a>
+        </nav>
+    </aside>
 
-        <img src="assets/avatar.png" alt="Avatar">
+    <main class="main">
 
+        <header class="topbar">
+            <div>
+                <h1>Люди</h1>
+                <p>Хто зараз де - загальний огляд, без входу. Клікніть на людину - календар чергувань і активностей.</p>
+            </div>
+            <div id="authBadge"></div>
+        </header>
 
-    </div>
+        <section class="filter-bar">
+            <label for="dateInput">Дата</label>
+            <input type="date" id="dateInput">
+            <label for="atInput">Час</label>
+            <input type="time" id="atInput">
+            <button type="button" class="outline-btn" id="nowBtn">Зараз</button>
+        </section>
 
+        <div id="addPersonWrap"></div>
 
-</header>
+        <div id="peopleContainer" class="people-list">
+            <div class="spinner-hint">Завантаження...</div>
+        </div>
 
-
-
-
-<section class="dashboard">
-
-
-
-<!-- Next shift -->
-
-
-<article class="card next-shift">
-
-
-<div class="card-header">
-
-    <h3>Наступна зміна</h3>
-
-    <span class="badge warning">
-        Через 25 хв
-    </span>
-
-</div>
-
-
-
-<div class="shift-main">
-
-
-    <div class="shift-icon">
-
-        <i data-lucide="package"></i>
-
-    </div>
-
-
-
-    <div>
-
-        <h2>Склад</h2>
-
-        <p>14:00 — 17:00</p>
-
-    </div>
-
-
-</div>
-
-
-
-<div class="divider"></div>
-
-
-
-<div class="coworkers">
-
-
-    <span>Разом на зміні</span>
-
-
-    <div class="people">
-
-        <div class="person">Марія</div>
-
-        <div class="person">Олександр</div>
-
-    </div>
-
+    </main>
 
 </div>
 
-
-
-<button class="primary-btn">
-
-    Деталі зміни
-
-</button>
-
-
-</article>
-
-
-
-
-
-
-<!-- Timeline -->
-
-
-<article class="card timeline">
-
-
-<h3>Мій день</h3>
-
-
-<div class="timeline-item active">
-
-
-    <span class="time">09:00</span>
-
-
-    <div>
-
-        <strong>Ранковий збір</strong>
-
-        <p>Штаб</p>
-
-    </div>
-
-
-</div>
-
-
-
-<div class="timeline-item">
-
-
-    <span class="time">14:00</span>
-
-
-    <div>
-
-        <strong>Склад</strong>
-
-        <p>Наступна зміна</p>
-
-    </div>
-
-
-</div>
-
-
-
-<div class="timeline-item">
-
-
-    <span class="time">18:00</span>
-
-
-    <div>
-
-        <strong>Вільний час</strong>
-
-    </div>
-
-
-</div>
-
-
-</article>
-
-
-
-
-
-
-<!-- Reminders -->
-
-
-<article class="card reminders">
-
-
-<h3>Побутові нагадування</h3>
-
-
-<ul>
-
-<li>💧 Душ</li>
-
-<li>🔋 Заряди рацію</li>
-
-<li>🦺 Не забудь бейдж</li>
-
-
-</ul>
-
-
-</article>
-
-
-
-
-
-
-
-<!-- Replace -->
-
-
-<article class="card replace">
-
-
-<h3>Потрібна заміна?</h3>
-
-
-<p>
-
-Якщо не можеш вийти на зміну —
-повідом координатора завчасно.
-
-</p>
-
-
-
-<button class="outline-btn">
-
-Попросити заміну
-
-</button>
-
-
-
-</article>
-
-
-
-
-
-</section>
-
-
-</main>
-
-
-
-</div>
-
-
-
+<script src="js/api.js"></script>
+<script src="js/personModal.js"></script>
 <script>
+    lucide.createIcons();
+    renderAuthBadge(document.getElementById('authBadge'));
 
-lucide.createIcons();
+    const dateInput = document.getElementById('dateInput');
+    const atInput = document.getElementById('atInput');
+    const container = document.getElementById('peopleContainer');
 
+    dateInput.value = todayDateStr();
+    atInput.value = nowTimeStr();
+
+    document.getElementById('nowBtn').addEventListener('click', () => {
+        dateInput.value = todayDateStr();
+        atInput.value = nowTimeStr();
+        loadPeople();
+    });
+    dateInput.addEventListener('change', loadPeople);
+    atInput.addEventListener('change', loadPeople);
+
+    function personRowHtml(person) {
+        const statusText = person.current
+            ? `${person.current.service_type} · ${person.current.time_start}–${person.current.time_end}`
+            : person.next
+                ? `Вільний(а) · далі ${person.next.service_type} о ${person.next.time_start}`
+                : 'Вільний(а)';
+
+        const tags = [];
+        if (person.is_driver) tags.push('<span class="tag tag--driver">Водій</span>');
+        if (person.role === 'lead') tags.push('<span class="tag">Адмін</span>');
+
+        const removeBtn = Session.isLead()
+            ? `<button type="button" class="person-remove" data-user-id="${person.user_id}" title="Видалити з ростеру">×</button>`
+            : '';
+
+        return `
+            <article class="card person-row" data-user-id="${person.user_id}" data-name="${person.name}">
+                <span class="status-dot ${person.status}"></span>
+                <div class="person-info">
+                    <strong>${person.name}</strong>
+                    <span class="person-status">${statusText}</span>
+                    <div class="person-tags">${tags.join('')}</div>
+                </div>
+                ${removeBtn}
+                <i data-lucide="chevron-right" class="person-chevron"></i>
+            </article>
+        `;
+    }
+
+    function renderAddPersonForm() {
+        const wrap = document.getElementById('addPersonWrap');
+        if (!Session.isLead()) {
+            wrap.innerHTML = '';
+            return;
+        }
+        wrap.innerHTML = `
+            <form class="card add-person-card" id="addPersonForm">
+                <input type="text" id="newPersonName" placeholder="Імʼя та прізвище" required minlength="2">
+                <label class="checkbox-label"><input type="checkbox" id="newPersonDriver"> Водій</label>
+                <button type="submit" class="primary-btn">Додати людину</button>
+            </form>
+        `;
+        document.getElementById('addPersonForm').addEventListener('submit', onAddPerson);
+    }
+
+    async function onAddPerson(e) {
+        e.preventDefault();
+        const nameInput = document.getElementById('newPersonName');
+        const driverInput = document.getElementById('newPersonDriver');
+        const name = nameInput.value.trim();
+        if (name.length < 2) return;
+
+        try {
+            await Api.post('/users', { name, is_driver: driverInput.checked });
+            nameInput.value = '';
+            driverInput.checked = false;
+            showBanner(`Додано: ${name}`, 'success');
+            await loadPeople();
+        } catch (err) {
+            showBanner(err.message || 'Не вдалося додати людину');
+        }
+    }
+
+    async function onRemovePerson(e) {
+        e.stopPropagation();
+        const userId = e.currentTarget.dataset.userId;
+        if (!window.confirm('Видалити цю людину з ростеру? Це не видаляє вже створені зміни.')) return;
+        try {
+            await Api.del(`/users/${userId}`);
+            showBanner('Людину видалено', 'success');
+            await loadPeople();
+        } catch (err) {
+            showBanner(err.message || 'Не вдалося видалити людину');
+        }
+    }
+
+    let peopleLoaded = false;
+
+    async function loadPeople() {
+        hideBanner();
+        // Спінер лише на першому завантаженні - інакше кожна зміна дати/часу чи дія
+        // (додати/видалити людину) на мить стирала б увесь список ("блимання").
+        if (!peopleLoaded) container.innerHTML = '<div class="spinner-hint">Завантаження...</div>';
+        try {
+            const data = await Api.get(`/people?date=${dateInput.value}&at=${atInput.value}`);
+            peopleLoaded = true;
+            if (!data.people.length) {
+                container.innerHTML = '<div class="empty-state">Ще немає жодної людини в системі.</div>';
+                return;
+            }
+            container.innerHTML = data.people.map(personRowHtml).join('');
+            container.querySelectorAll('.person-remove').forEach((btn) => {
+                btn.addEventListener('click', onRemovePerson);
+            });
+            container.querySelectorAll('.person-row').forEach((row) => {
+                row.addEventListener('click', () => openPersonModal(row.dataset.userId, row.dataset.name));
+            });
+            lucide.createIcons();
+        } catch (err) {
+            if (!peopleLoaded) container.innerHTML = '';
+            showBanner(err.message || 'Не вдалося завантажити список людей');
+        }
+    }
+
+    renderAddPersonForm();
+    loadPeople();
 </script>
 
-
-
 </body>
-
 </html>

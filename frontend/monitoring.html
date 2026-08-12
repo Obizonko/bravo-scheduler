@@ -2,382 +2,153 @@
 <html lang="uk">
 
 <head>
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Bravo | Моніторинг</title>
 
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/app.css">
 
     <script src="https://unpkg.com/lucide@latest"></script>
-
 </head>
-
 
 <body>
 
-
 <div class="layout">
 
-
-
-<!-- Sidebar -->
-
-<aside class="sidebar">
-
-    <div class="logo">
-        <span class="logo-dot"></span>
-        <h2>Bravo</h2>
-    </div>
-
-
-    <nav>
-
-        <a href="index.html" class="nav-item">
-            <i data-lucide="calendar-days"></i>
-            <span>Мій розклад</span>
-        </a>
-
-
-        <a href="monitoring.html" class="nav-item active">
-            <i data-lucide="activity"></i>
-            <span>Моніторинг</span>
-        </a>
-
-
-        <a href="settings.html" class="nav-item">
-            <i data-lucide="settings"></i>
-            <span>Налаштування</span>
-        </a>
-
-
-    </nav>
-
-
-</aside>
-
-
-
-
-
-<!-- MAIN -->
-
-<main class="main">
-
-
-
-<header class="topbar">
-
-    <div>
-
-        <h1>Моніторинг</h1>
-
-        <p>Поточний стан служб</p>
-
-    </div>
-
-
-
-    <div class="profile">
-
-
-        <img src="assets/avatar.png" alt="avatar">
-
-
-        <div class="profile-info">
-
-            <strong>Артем</strong>
-
-            <small>Онлайн</small>
-
+    <aside class="sidebar">
+        <div class="logo">
+            <span class="logo-dot"></span>
+            <h2>Bravo</h2>
         </div>
 
-
-        <span class="status online"></span>
-
-
-    </div>
-
-
-</header>
-
-
-
-
-
-<section class="monitor-grid">
-
-
-
-<!-- Склад -->
-
-<div class="card monitor-card">
-
-
-    <div class="monitor-header">
-
-
-        <div class="service-icon warehouse">
-
-            <i data-lucide="package"></i>
-
-        </div>
-
-
-        <span class="badge success">
-            Укомплектовано
-        </span>
-
-
-    </div>
-
-
-
-    <h3>Склад</h3>
-
-    <h2>4 / 5</h2>
-
-    <p>Потрібен ще 1 волонтер</p>
-
-
-</div>
-
-
-
-
-
-<!-- ТЕЦ -->
-
-<div class="card monitor-card">
-
-
-    <div class="monitor-header">
-
-
-        <div class="service-icon tec">
-
-            <i data-lucide="zap"></i>
-
-        </div>
-
-
-        <span class="badge warning">
-            Увага
-        </span>
-
-
-    </div>
-
-
-
-    <h3>ТЕЦ</h3>
-
-    <h2>2 / 3</h2>
-
-    <p>Не вистачає 1 людини</p>
-
-
-</div>
-
-
-
-
-
-
-
-<!-- Активності -->
-
-<div class="card monitor-card">
-
-
-    <div class="monitor-header">
-
-
-        <div class="service-icon activity">
-
-            <i data-lucide="flag"></i>
-
-        </div>
-
-
-        <span class="badge success">
-            Повністю
-        </span>
-
-
-    </div>
-
-
-
-    <h3>Активності</h3>
-
-    <h2>6 / 6</h2>
-
-    <p>Команда сформована</p>
-
-
-</div>
-
-
-
-
-
-
-
-<!-- Водії -->
-
-<div class="card monitor-card">
-
-
-    <div class="monitor-header">
-
-
-        <div class="service-icon drivers">
-
-            <i data-lucide="car"></i>
-
-        </div>
-
-
-        <span class="badge success">
-            Укомплектовано
-        </span>
-
-
-    </div>
-
-
-
-    <h3>Водії</h3>
-
-    <h2>3 / 3</h2>
-
-    <p>Усі на місці</p>
-
-
-</div>
-
-
-
-
-
-
-
-
-<!-- Останні зміни -->
-
-<div class="card monitor-log">
-
-
-    <div class="card-header">
-
-        <h3>Останні зміни</h3>
-
-    </div>
-
-
-
-    <div class="log-list">
-
-
-        <div class="log-item">
-
-            <span class="log-dot success"></span>
-
+        <nav>
+            <a href="index.html" class="nav-item">
+                <i data-lucide="users"></i>
+                <span>Люди</span>
+            </a>
+            <a href="sklad.html" class="nav-item">
+                <i data-lucide="package"></i>
+                <span>Склад</span>
+            </a>
+            <a href="tec.html" class="nav-item">
+                <i data-lucide="zap"></i>
+                <span>ТЕЦ</span>
+            </a>
+            <a href="vodii.html" class="nav-item">
+                <i data-lucide="car"></i>
+                <span>Водії</span>
+            </a>
+            <a href="masterplan.html" class="nav-item">
+                <i data-lucide="calendar-clock"></i>
+                <span>Майстер-план</span>
+            </a>
+            <a href="monitoring.html" class="nav-item active">
+                <i data-lucide="activity"></i>
+                <span>Моніторинг</span>
+            </a>
+            <a href="admins.html" class="nav-item">
+                <i data-lucide="shield"></i>
+                <span>Адміни</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main">
+
+        <header class="topbar">
             <div>
-
-                <strong>Марія перейшла на ТЕЦ</strong>
-
-                <p>2 хв тому</p>
-
+                <h1>Моніторинг</h1>
+                <p>Поточний стан усіх служб</p>
             </div>
+            <div id="authBadge"></div>
+        </header>
 
+        <div id="content">
+            <div class="spinner-hint">Завантаження...</div>
         </div>
 
-
-
-
-        <div class="log-item">
-
-            <span class="log-dot warning"></span>
-
-            <div>
-
-                <strong>Склад потребує ще одного волонтера</strong>
-
-                <p>7 хв тому</p>
-
-            </div>
-
-        </div>
-
-
-
-
-        <div class="log-item">
-
-            <span class="log-dot success"></span>
-
-            <div>
-
-                <strong>Олександр завершив зміну</strong>
-
-                <p>18 хв тому</p>
-
-            </div>
-
-        </div>
-
-
-
-
-        <div class="log-item">
-
-            <span class="log-dot success"></span>
-
-            <div>
-
-                <strong>Водії повністю укомплектовані</strong>
-
-                <p>35 хв тому</p>
-
-            </div>
-
-        </div>
-
-
-
-    </div>
-
+    </main>
 
 </div>
 
-
-
-
-</section>
-
-
-
-</main>
-
-
-
-</div>
-
-
-
-
-
+<script src="js/api.js"></script>
 <script>
-
     lucide.createIcons();
+    renderAuthBadge(document.getElementById('authBadge'));
 
+    const STATE_LABEL = {
+        ok: 'Укомплектовано',
+        understaffed: 'Недобір',
+        overstaffed: 'Перебір',
+        closed: 'Закрито',
+        unstaffed: 'Немає зміни',
+    };
+    const STATE_BADGE_CLASS = {
+        ok: 'success',
+        understaffed: 'warning',
+        overstaffed: 'warning',
+        closed: 'danger',
+        unstaffed: 'warning',
+    };
+
+    function serviceCardHtml(service) {
+        const count = service.current ? `${service.current.count} / ${service.current.quota.max}` : '—';
+        const detail = service.current
+            ? `${service.current.time_start}–${service.current.time_end}`
+            : service.next
+                ? `Далі: ${service.next.time_start}`
+                : 'Немає запланованих змін';
+
+        return `
+            <div class="card monitor-card">
+                <div class="monitor-header">
+                    <div class="service-icon ${service.service_type === 'Склад' ? 'warehouse' : 'tec'}">
+                        <i data-lucide="${SERVICE_TYPE_ICONS[service.service_type] || 'circle'}"></i>
+                    </div>
+                    <span class="badge ${STATE_BADGE_CLASS[service.state] || ''}">${STATE_LABEL[service.state] || service.state}</span>
+                </div>
+                <h3>${service.service_type}</h3>
+                <h2>${count}</h2>
+                <p>${detail}</p>
+            </div>
+        `;
+    }
+
+    async function loadStatus() {
+        const content = document.getElementById('content');
+        hideBanner();
+        try {
+            const data = await Api.get(`/status?date=${todayDateStr()}&at=${nowTimeStr()}`);
+            const cards = data.services.map(serviceCardHtml).join('');
+
+            const activitiesHtml = data.active_activities.length
+                ? data.active_activities.map((a) => `
+                    <div class="log-item">
+                        <span class="log-dot success"></span>
+                        <div><strong>${a.name_of_activity}</strong><p>${a.time_start}–${a.time_end}</p></div>
+                    </div>`).join('')
+                : '<p class="empty-state">Зараз немає активностей за програмою</p>';
+
+            content.innerHTML = `
+                <section class="monitor-grid">
+                    ${cards}
+                    <div class="card monitor-log">
+                        <div class="card-header"><h3>Активності зараз</h3></div>
+                        <div class="log-list">${activitiesHtml}</div>
+                    </div>
+                </section>
+            `;
+            lucide.createIcons();
+        } catch (err) {
+            content.innerHTML = '';
+            showBanner(err.message || 'Не вдалося завантажити стан служб');
+        }
+    }
+
+    loadStatus();
 </script>
 
-
-
 </body>
-
 </html>

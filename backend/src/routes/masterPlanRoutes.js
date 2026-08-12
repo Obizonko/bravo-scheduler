@@ -1,6 +1,7 @@
 const express = require('express');
 const masterPlanController = require('../controllers/masterPlanController');
 const validate = require('../middlewares/validate');
+const requireLead = require('../middlewares/requireLead');
 const {
   createMasterPlanSchema,
   updateMasterPlanSchema,
@@ -10,8 +11,8 @@ const router = express.Router();
 
 router.get('/', masterPlanController.getAll);
 router.get('/:id', masterPlanController.getById);
-router.post('/', validate(createMasterPlanSchema), masterPlanController.create);
-router.put('/:id', validate(updateMasterPlanSchema), masterPlanController.update);
-router.delete('/:id', masterPlanController.remove);
+router.post('/', requireLead, validate(createMasterPlanSchema), masterPlanController.create);
+router.put('/:id', requireLead, validate(updateMasterPlanSchema), masterPlanController.update);
+router.delete('/:id', requireLead, masterPlanController.remove);
 
 module.exports = router;

@@ -1,13 +1,28 @@
 const shiftService = require('../services/shiftService');
+const rulesEngineService = require('../services/rulesEngineService');
 
 class ShiftController {
   async getAll(req, res) {
-    const { date, service_type } = req.query;
+    const { date, service_type } = req.validated.query;
     const filter = {};
     if (date) filter.date = date;
     if (service_type) filter.service_type = service_type;
     const shifts = await shiftService.getAll(filter);
     res.status(200).json({ success: true, data: shifts });
+  }
+
+  /** Таймлайн служби (один день): GET /shifts/board?date&service_type */
+  async getBoard(req, res) {
+    const { date, service_type: serviceType } = req.validated.query;
+    const board = await rulesEngineService.getServiceBoard(date, serviceType);
+    res.status(200).json({ success: true, data: board });
+  }
+
+  /** Тижневий грід служби: GET /shifts/week-board?date_from&date_to&service_type */
+  async getWeekBoard(req, res) {
+    const { date_from: dateFrom, date_to: dateTo, service_type: serviceType } = req.validated.query;
+    const board = await rulesEngineService.getWeekBoard(dateFrom, dateTo, serviceType);
+    res.status(200).json({ success: true, data: board });
   }
 
   async getById(req, res) {

@@ -27,9 +27,44 @@ class ValidationError extends AppError {
 }
 
 class ConflictError extends AppError {
-  constructor(message = 'Конфлікт даних') {
-    super(message, 409);
+  constructor(message = 'Конфлікт даних', details = null) {
+    super(message, 409, details);
   }
 }
 
-module.exports = { AppError, NotFoundError, ValidationError, ConflictError };
+class UnauthorizedError extends AppError {
+  constructor(message = 'Необхідна автентифікація') {
+    super(message, 401);
+  }
+}
+
+class ForbiddenError extends AppError {
+  constructor(message = 'Недостатньо прав') {
+    super(message, 403);
+  }
+}
+
+/**
+ * Спеціалізований ConflictError для рушія правил: у details лежать
+ * violations (жорсткі порушення, які й спричинили відмову) та warnings
+ * (дорадчі знахідки, що супроводжують той самий кандидат на призначення).
+ * Кидається лише коли config.rules.enforcement === 'block' і force не передано.
+ */
+class RuleViolationError extends ConflictError {
+  constructor(result) {
+    super('Призначення порушує правила графіка', {
+      violations: result.violations,
+      warnings: result.warnings,
+    });
+  }
+}
+
+module.exports = {
+  AppError,
+  NotFoundError,
+  ValidationError,
+  ConflictError,
+  UnauthorizedError,
+  ForbiddenError,
+  RuleViolationError,
+};

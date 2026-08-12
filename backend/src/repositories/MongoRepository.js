@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const BaseRepository = require('./BaseRepository');
-const { NotFoundError } = require('../utils/AppError');
+const { NotFoundError, ConflictError } = require('../utils/AppError');
+const { isCriterion, OP_IN, OP_BETWEEN, OP_NE } = require('./criteria');
 
 /**
  * Універсальна реалізація репозиторію поверх Mongoose.
@@ -18,8 +19,36 @@ class MongoRepository extends BaseRepository {
     this.entityLabel = entityLabel;
   }
 
+  /**
+   * Перекладає СУБД-агностичні критерії (src/repositories/criteria.js) на мову
+   * Mongo-запиту. Звичайні (не-критерійні) значення проходять як рівність, як і раніше.
+   */
+  _toMongoFilter(filter = {}) {
+    const mongoFilter = {};
+    for (const [field, rawValue] of Object.entries(filter)) {
+      if (!isCriterion(rawValue)) {
+        mongoFilter[field] = rawValue;
+        continue;
+      }
+      switch (rawValue.__op) {
+        case OP_IN:
+          mongoFilter[field] = { $in: rawValue.values };
+          break;
+        case OP_BETWEEN:
+          mongoFilter[field] = { $gte: rawValue.from, $lte: rawValue.to };
+          break;
+        case OP_NE:
+          mongoFilter[field] = { $ne: rawValue.value };
+          break;
+        default:
+          throw new Error(`Непідтримуваний критерій фільтра: ${rawValue.__op}`);
+      }
+    }
+    return mongoFilter;
+  }
+
   async findAll(filter = {}) {
-    const docs = await this.model.find(filter).sort({ createdAt: 1 }).exec();
+    const docs = await this.model.find(this._toMongoFilter(filter)).sort({ createdAt: 1 }).exec();
     return docs.map((doc) => doc.toJSON());
   }
 
@@ -30,8 +59,19 @@ class MongoRepository extends BaseRepository {
   }
 
   async create(data) {
-    const doc = await this.model.create(data);
-    return doc.toJSON();
+    try {
+      const doc = await this.model.create(data);
+      return doc.toJSON();
+    } catch (err) {
+      // E11000 - порушення унікального індексу (напр. Schedule{shift_id,user_id}).
+      // Без цього перехоплення дублювання спливало б як непередбачений 500.
+      if (err && err.code === 11000) {
+        throw new ConflictError(`${this.entityLabel}: такий запис вже існує`, {
+          keyPattern: err.keyPattern,
+        });
+      }
+      throw err;
+    }
   }
 
   async update(id, data) {

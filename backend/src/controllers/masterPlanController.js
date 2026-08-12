@@ -2,7 +2,11 @@ const masterPlanService = require('../services/masterPlanService');
 
 class MasterPlanController {
   async getAll(req, res) {
-    const records = await masterPlanService.getAll();
+    const { date, is_daily } = req.query;
+    const filter = {};
+    if (date) filter.date = date;
+    if (is_daily !== undefined) filter.is_daily = is_daily === 'true';
+    const records = await masterPlanService.getAll(filter);
     res.status(200).json({ success: true, data: records });
   }
 

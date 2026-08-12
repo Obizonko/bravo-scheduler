@@ -1,4 +1,5 @@
 const { Schema, model } = require('mongoose');
+const { ROLES } = require('../domain/constants');
 
 /**
  * Модель User (колекція users).
@@ -10,6 +11,10 @@ const userSchema = new Schema(
     name: { type: String, required: true, trim: true, minlength: 2, maxlength: 200 },
     is_driver: { type: Boolean, default: false },
     telegram_id: { type: String, default: '', trim: true },
+    // 'lead' - голова команди, може підтверджувати PIN-ом і продавлювати м'які/окремі жорсткі
+    // порушення правил (force). Дефолтні значення схеми застосовуються Mongoose і на читанні
+    // старих документів, тож наявні рядки без цього поля коректно гідратуються як 'member'.
+    role: { type: String, enum: ROLES, default: 'member' },
   },
   {
     timestamps: true,

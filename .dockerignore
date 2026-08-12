@@ -1,0 +1,31 @@
+# Залежності - ставляться всередині образу через npm ci
+**/node_modules
+
+# Секрети - ніколи в образ, лише через env_file/environment у compose
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Логи й тимчасові артефакти
+**/logs
+**/*.log
+npm-debug.log*
+
+# Git/IDE/OS
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Тести й dev-інструменти не потрібні у продакшн-образі
+backend/test
+backend/scripts
+backend/.eslintrc.json
+backend/.prettierrc.json
+backend/.prettierignore
+
+# Документація й плани - не впливають на рантайм
+README.md
+*.md
