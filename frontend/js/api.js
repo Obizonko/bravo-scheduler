@@ -8,7 +8,7 @@
  */
 
 const API_BASE = '/api/v1';
-const SESSION_KEY = 'bravo_admin_session'; // { role: 'lead'|'super_admin', pin: string }
+const SESSION_KEY = 'bravo_admin_session'; // { role: 'lead'|'super_admin', pin, user_id?, name? }
 
 const Session = {
   get() {
@@ -19,8 +19,9 @@ const Session = {
       return null;
     }
   },
-  set(role, pin) {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ role, pin }));
+  /** userId/name - опційні: заповнені лише коли PIN персональний (не старий спільний). */
+  set(role, pin, userId, name) {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ role, pin, user_id: userId || null, name: name || null }));
   },
   clear() {
     sessionStorage.removeItem(SESSION_KEY);
@@ -99,8 +100,9 @@ function renderAuthBadge(container) {
 
   if (session) {
     const roleLabel = session.role === 'super_admin' ? 'Супер-адмін' : 'Адмін';
+    const nameLabel = session.name ? ` · ${session.name}` : '';
     badge.innerHTML = `
-      <span class="role-pill role-pill--${session.role}">${roleLabel}</span>
+      <span class="role-pill role-pill--${session.role}">${roleLabel}${nameLabel}</span>
       <button type="button" class="text-btn" id="authLogoutBtn">Вийти</button>
     `;
     container.appendChild(badge);
@@ -291,6 +293,30 @@ function visualEndMin(item) {
   const end = hmToMin(item.time_end);
   return end <= start ? 1440 : end;
 }
+
+/** Плаваюча підказка точного часу під час create/resize/move-драгу в
+ * weekCalendar.js та masterPlan.js - один спільний DOM-елемент на сторінку. */
+const DragTooltip = {
+  el: null,
+  ensure() {
+    if (!this.el) {
+      this.el = document.createElement('div');
+      this.el.className = 'drag-time-tooltip';
+      document.body.appendChild(this.el);
+    }
+    return this.el;
+  },
+  show(text, clientX, clientY) {
+    const el = this.ensure();
+    el.textContent = text;
+    el.style.left = `${clientX + 14}px`;
+    el.style.top = `${clientY - 32}px`;
+    el.classList.add('visible');
+  },
+  hide() {
+    if (this.el) this.el.classList.remove('visible');
+  },
+};
 
 function hourLabelsHtml() {
   let html = '';

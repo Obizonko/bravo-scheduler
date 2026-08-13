@@ -52,6 +52,10 @@
                 <i data-lucide="shield"></i>
                 <span>Адміни</span>
             </a>
+            <a href="logs.html" class="nav-item">
+                <i data-lucide="scroll-text"></i>
+                <span>Журнал</span>
+            </a>
         </nav>
     </aside>
 
@@ -60,7 +64,7 @@
         <header class="topbar">
             <div>
                 <h1>Адміни</h1>
-                <p>Призначення й зняття прав голови команди - лише для супер-адміна</p>
+                <p>Призначення й зняття прав голови команди - лише для супер-адміна. Кожен новий адмін отримує власний персональний PIN (показується один раз одразу після призначення).</p>
             </div>
             <div id="authBadge"></div>
         </header>
@@ -82,6 +86,7 @@
     const content = document.getElementById('content');
 
     function roleBadgeHtml(role) {
+        if (role === 'super_admin') return '<span class="role-pill role-pill--super_admin">Супер-адмін</span>';
         if (role === 'lead') return '<span class="role-pill">Адмін</span>';
         return '<span class="tag">Учасник(ця)</span>';
     }
@@ -108,17 +113,22 @@
             tableLoaded = true;
             users.sort((a, b) => a.name.localeCompare(b.name, 'uk'));
 
-            const rows = users.map((u) => `
-                <tr data-user-id="${u.user_id}">
-                    <td>${u.name}${u.is_driver ? ' 🚗' : ''}</td>
-                    <td>${roleBadgeHtml(u.role)}</td>
-                    <td>
-                        <button type="button" class="role-toggle-btn" data-next-role="${u.role === 'lead' ? 'member' : 'lead'}">
-                            ${u.role === 'lead' ? 'Зняти права адміна' : 'Зробити адміном'}
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
+            const rows = users.map((u) => {
+                // Роль супер-адміна недоторканна через цю сторінку (userService.update
+                // сам відхилить спробу, але й кнопку тут не показуємо - нема чого пробувати).
+                const toggleHtml = u.role === 'super_admin'
+                    ? '<span class="text-btn" style="opacity:.4; cursor:default;">—</span>'
+                    : `<button type="button" class="role-toggle-btn" data-next-role="${u.role === 'lead' ? 'member' : 'lead'}">
+                           ${u.role === 'lead' ? 'Зняти права адміна' : 'Зробити адміном'}
+                       </button>`;
+                return `
+                    <tr data-user-id="${u.user_id}" data-name="${u.name}">
+                        <td>${u.name}${u.is_driver ? ' 🚗' : ''}</td>
+                        <td>${roleBadgeHtml(u.role)}</td>
+                        <td>${toggleHtml}</td>
+                    </tr>
+                `;
+            }).join('');
 
             content.innerHTML = `
                 <div class="card">
@@ -144,11 +154,20 @@
         const btn = e.currentTarget;
         const row = btn.closest('tr');
         const userId = row.dataset.userId;
+        const name = row.dataset.name;
         const nextRole = btn.dataset.nextRole;
         btn.disabled = true;
         try {
-            await Api.put(`/users/${userId}`, { role: nextRole });
-            showBanner('Роль оновлено', 'success');
+            const updated = await Api.put(`/users/${userId}`, { role: nextRole });
+            if (updated.generated_pin) {
+                // alert() навмисно - блокує, поки супер-адмін не прочитає й не запам'ятає/
+                // не передасть PIN особисто. Він більше ніколи не покажеться (в базі не
+                // хешується, але й повторно через API не віддається - GET /users його не має).
+                alert(`Новий персональний PIN для ${name}: ${updated.generated_pin}\n\nПередайте особисто - він більше не покажеться.`);
+                showBanner(`${name} тепер адмін. PIN показано вище.`, 'success');
+            } else {
+                showBanner('Роль оновлено', 'success');
+            }
             await renderTable();
         } catch (err) {
             showBanner(err.message || 'Не вдалося оновити роль');

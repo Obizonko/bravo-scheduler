@@ -3,15 +3,18 @@
 const crypto = require('crypto');
 const { config } = require('../config/env');
 const { UnauthorizedError, ForbiddenError } = require('../utils/AppError');
+const userRepository = require('../repositories/userRepository');
 
 /**
- * Легка ієрархічна авторизація через спільний PIN у заголовку X-Admin-Pin
- * (ніколи в query-параметрі - той потрапив би в логи доступу й історію браузера).
- * Порівняння - crypto.timingSafeEqual, щоб не витікати збіг довжини/вмісту через час відповіді.
+ * Авторизація через PIN у заголовку X-Admin-Pin (ніколи в query-параметрі -
+ * той потрапив би в логи доступу й історію браузера).
  *
- * Два рівні: 'lead' (голова команди, ADMIN_PIN) і 'super_admin' (власник системи,
- * SUPER_ADMIN_PIN) - той, хто знає SUPER_ADMIN_PIN, автоматично проходить і гейт lead-рівня
- * (стандартна ієрархія прав), тому requireLead приймає ОБИДВА PIN.
+ * Основний шлях - персональний PIN (User.pin, лише lead/super_admin), що
+ * дає й РОЛЬ, і ІДЕНТИЧНІСТЬ (req.actorId/req.actorName) для аудит-логу.
+ * Запасний шлях - старі спільні ADMIN_PIN/SUPER_ADMIN_PIN з .env (crypto.
+ * timingSafeEqual, щоб не витікати збіг через час відповіді): підстраховка,
+ * якщо PIN людини забутий/загублений і в БД ще нема кому його скинути, або
+ * якщо супер-адмін ще не насіяний (сервер щойно піднявся вперше).
  */
 function checkPin(candidate, expected) {
   if (!expected) return false;
@@ -20,25 +23,44 @@ function checkPin(candidate, expected) {
   return providedBuf.length === expectedBuf.length && crypto.timingSafeEqual(providedBuf, expectedBuf);
 }
 
-/**
- * Якщо НІ ADMIN_PIN, НІ SUPER_ADMIN_PIN не налаштовані - гейт вимкнений і пропускає все,
- * так порожній .env не блокує систему випадково. Але це ж означає, що привілейовані дії
- * лишаються недоступними, доки хоч один PIN не налаштовано явно.
- */
-function requireLead(req, res, next) {
-  if (!config.admin.pin && !config.superAdmin.pin) return next();
+/** Шукає користувача з таким персональним PIN серед lead/super_admin. null, якщо не знайдено. */
+async function findActorByPin(pin) {
+  if (!pin) return null;
+  const matches = await userRepository.findAll({ pin });
+  const actor = matches.find((u) => u.role === 'lead' || u.role === 'super_admin');
+  return actor || null;
+}
 
-  const provided = req.get('X-Admin-Pin');
-  const isSuperAdmin = checkPin(provided, config.superAdmin.pin);
-  const isLead = isSuperAdmin || checkPin(provided, config.admin.pin);
+async function requireLead(req, res, next) {
+  try {
+    const provided = req.get('X-Admin-Pin');
 
-  if (!isLead) {
-    return next(new UnauthorizedError('Потрібен дійсний PIN голови команди (заголовок X-Admin-Pin)'));
+    const actor = await findActorByPin(provided);
+    if (actor) {
+      req.isLead = true;
+      req.isSuperAdmin = actor.role === 'super_admin';
+      req.actorId = actor.user_id;
+      req.actorName = actor.name;
+      return next();
+    }
+
+    // Запасний легасі-шлях - спільні PIN з .env, без прив'язки до конкретної людини.
+    if (!config.admin.pin && !config.superAdmin.pin) return next(); // гейт вимкнений
+
+    const isSuperAdminLegacy = checkPin(provided, config.superAdmin.pin);
+    const isLeadLegacy = isSuperAdminLegacy || checkPin(provided, config.admin.pin);
+    if (!isLeadLegacy) {
+      return next(new UnauthorizedError('Потрібен дійсний PIN голови команди (заголовок X-Admin-Pin)'));
+    }
+
+    req.isLead = true;
+    req.isSuperAdmin = isSuperAdminLegacy;
+    req.actorId = null;
+    req.actorName = isSuperAdminLegacy ? 'Супер-адмін (спільний PIN)' : 'Адмін (спільний PIN)';
+    return next();
+  } catch (err) {
+    return next(err);
   }
-
-  req.isLead = true;
-  req.isSuperAdmin = isSuperAdmin;
-  return next();
 }
 
 /** Той самий гейт, але лише коли клієнт реально просить force - звичайне призначення не потребує PIN. */
@@ -47,17 +69,34 @@ function requireLeadIfForcing(req, res, next) {
   return requireLead(req, res, next);
 }
 
-/** Найвищий рівень: лише той, хто знає SUPER_ADMIN_PIN - призначення/зняття адмінів. */
-function requireSuperAdmin(req, res, next) {
-  if (!config.superAdmin.pin) {
-    return next(new ForbiddenError('SUPER_ADMIN_PIN не налаштований на сервері'));
+/** Найвищий рівень: лише той, хто знає персональний PIN супер-адміна (роль super_admin) - призначення/зняття адмінів. */
+async function requireSuperAdmin(req, res, next) {
+  try {
+    const provided = req.get('X-Admin-Pin');
+
+    const actor = await findActorByPin(provided);
+    if (actor && actor.role === 'super_admin') {
+      req.isLead = true;
+      req.isSuperAdmin = true;
+      req.actorId = actor.user_id;
+      req.actorName = actor.name;
+      return next();
+    }
+
+    if (!config.superAdmin.pin) {
+      return next(new ForbiddenError('SUPER_ADMIN_PIN не налаштований на сервері'));
+    }
+    if (!checkPin(provided, config.superAdmin.pin)) {
+      return next(new UnauthorizedError('Потрібен дійсний PIN супер-адміна (заголовок X-Admin-Pin)'));
+    }
+    req.isLead = true;
+    req.isSuperAdmin = true;
+    req.actorId = null;
+    req.actorName = 'Супер-адмін (спільний PIN)';
+    return next();
+  } catch (err) {
+    return next(err);
   }
-  if (!checkPin(req.get('X-Admin-Pin'), config.superAdmin.pin)) {
-    return next(new UnauthorizedError('Потрібен дійсний PIN супер-адміна (заголовок X-Admin-Pin)'));
-  }
-  req.isLead = true;
-  req.isSuperAdmin = true;
-  return next();
 }
 
 /** requireSuperAdmin, але лише коли тіло запиту реально змінює role - решта полів редагує lead. */

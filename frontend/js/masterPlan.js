@@ -219,6 +219,9 @@ class MasterPlanBoard {
             ghost.style.top = `${Math.min(startY, currentY)}px`;
             ghost.style.height = `${Math.abs(currentY - startY)}px`;
             this.dragState.currentY = currentY;
+            const startMin = snapMin(pxToMin(Math.min(startY, currentY)));
+            const endMin = snapMin(pxToMin(Math.max(startY, currentY)));
+            DragTooltip.show(`${minToHm(startMin)}–${minToHm(endMin)}`, e.clientX, e.clientY);
         } else if (this.dragState.mode === 'resize') {
             const { track, bar, barTopPx } = this.dragState;
             // Свіжий rect на кожен рух - інакше прокрутка під час ресайзу зробила б
@@ -228,6 +231,9 @@ class MasterPlanBoard {
             const height = Math.max(currentY - barTopPx, minToPx(MIN_DURATION_MIN));
             bar.style.height = `${height}px`;
             this.dragState.currentY = currentY;
+            const startMin = snapMin(pxToMin(barTopPx));
+            const endMin = snapMin(pxToMin(currentY));
+            DragTooltip.show(`${minToHm(startMin)}–${minToHm(endMin)}`, e.clientX, e.clientY);
         } else if (this.dragState.mode === 'move') {
             const { bar, barTopPx, barHeightPx, startClientY } = this.dragState;
             const deltaY = e.clientY - startClientY;
@@ -235,6 +241,9 @@ class MasterPlanBoard {
             const newTop = Math.min(Math.max(barTopPx + deltaY, 0), DAY_HEIGHT_PX - barHeightPx);
             bar.style.top = `${newTop}px`;
             this.dragState.newTopPx = newTop;
+            const startMin = snapMin(pxToMin(newTop));
+            const endMin = Math.min(startMin + pxToMin(barHeightPx), 1440);
+            DragTooltip.show(`${minToHm(startMin)}–${minToHm(endMin)}`, e.clientX, e.clientY);
         }
     }
 
@@ -242,6 +251,7 @@ class MasterPlanBoard {
         const state = this.dragState;
         if (!state) return;
         this.dragState = null;
+        DragTooltip.hide();
 
         if (state.mode === 'create') {
             state.ghost.remove();

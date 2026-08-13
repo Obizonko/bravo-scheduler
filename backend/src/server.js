@@ -32,6 +32,15 @@ async function start() {
       fatal('Не вдалося підключитися до MongoDB', err);
       return;
     }
+
+    try {
+      const seedSuperAdmin = require('./database/seedSuperAdmin');
+      await seedSuperAdmin();
+    } catch (err) {
+      // Не фатально - сервер і так підніметься, просто без DB-персони супер-адміна
+      // (лишається запасний легасі-шлях через SUPER_ADMIN_PIN, requireLead.js).
+      logger.error('Не вдалося насіяти супер-адміна', { error: err.message });
+    }
   }
 
   const server = app.listen(config.port, () => {

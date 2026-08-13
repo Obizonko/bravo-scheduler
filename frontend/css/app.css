@@ -826,9 +826,49 @@
     position: absolute;
     left: 0;
     right: 0;
-    bottom: 0;
-    height: 6px;
+    bottom: -3px;
+    height: 12px;
     cursor: ns-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+}
+
+/* Візуальна "ручка" (грип) - без неї 12px зона захвату непомітна, і незрозуміло,
+   де саме тягнути, щоб розтягнути подію знизу. */
+.wc-resize-handle::after {
+    content: '';
+    width: 22px;
+    height: 3px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.25);
+    transition: background var(--transition);
+}
+
+.wc-resize-handle:hover::after {
+    background: rgba(0, 0, 0, 0.55);
+}
+
+/* Плаваюча підказка точного часу під час драгу (створення/ресайз/переміщення) -
+   без неї доводилось орієнтуватись лише на позицію відносно шкали годин. */
+.drag-time-tooltip {
+    position: fixed;
+    z-index: 200;
+    background: #111;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 5px 10px;
+    border-radius: 8px;
+    pointer-events: none;
+    white-space: nowrap;
+    display: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.drag-time-tooltip.visible {
+    display: block;
 }
 
 .wc-ghost {

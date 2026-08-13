@@ -15,6 +15,11 @@ const userSchema = new Schema(
     // порушення правил (force). Дефолтні значення схеми застосовуються Mongoose і на читанні
     // старих документів, тож наявні рядки без цього поля коректно гідратуються як 'member'.
     role: { type: String, enum: ROLES, default: 'member' },
+    // Персональний PIN для входу (лише lead/super_admin) - генерується автоматично
+    // при призначенні адміном (userService#update) і скидається в null при знятті
+    // прав. select:false - GET /users (загальнодоступна сторінка "Люди") ніколи
+    // не повертає PIN-и інших людей, навіть випадково.
+    pin: { type: String, default: null, select: false },
   },
   {
     timestamps: true,
@@ -23,6 +28,9 @@ const userSchema = new Schema(
         ret.user_id = ret._id.toString();
         delete ret._id;
         delete ret.__v;
+        // Захист від випадкового витоку - навіть якщо десь явно зроблено
+        // .select('+pin'), сирий PIN ніколи не потрапить у JSON-відповідь.
+        delete ret.pin;
         return ret;
       },
     },

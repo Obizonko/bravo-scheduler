@@ -1,5 +1,18 @@
 const scheduleService = require('../services/scheduleService');
 const rulesEngineService = require('../services/rulesEngineService');
+const userRepository = require('../repositories/userRepository');
+const shiftRepository = require('../repositories/shiftRepository');
+const { recordAudit } = require('../utils/auditLog');
+
+/** "Іван Х на зміні «Склад» 12.08 09:00–11:00" - для читабельних записів у аудит-лозі. */
+async function describeAssignment(userId, shiftId) {
+  const [user, shift] = await Promise.all([userRepository.findById(userId), shiftRepository.findById(shiftId)]);
+  const userLabel = user ? user.name : `користувач ${userId}`;
+  const shiftLabel = shift
+    ? `«${shift.service_type}» ${shift.date} ${shift.time_start}–${shift.time_end}`
+    : `зміна ${shiftId}`;
+  return { userLabel, shiftLabel };
+}
 
 class ScheduleController {
   async getAll(req, res) {
@@ -43,6 +56,15 @@ class ScheduleController {
     // data лишається ТОЧНО тим самим записом, що й раніше - warnings/violations
     // додаються як сусідні ключі верхнього рівня, які старі клієнти просто ігнорують.
     const { record, warnings, violations } = await scheduleService.assign(data, { force: effectiveForce });
+
+    const { userLabel, shiftLabel } = await describeAssignment(record.user_id, record.shift_id);
+    await recordAudit(req, {
+      action: 'schedule.assign',
+      entityType: 'Schedule',
+      entityId: record.record_id,
+      summary: `Призначив(ла) ${userLabel} на зміну ${shiftLabel}`,
+    });
+
     res.status(201).json({
       success: true,
       data: record,
@@ -63,7 +85,18 @@ class ScheduleController {
   }
 
   async remove(req, res) {
+    // Знімок ДО видалення - інакше після remove() нема звідки взяти user_id/shift_id для логу.
+    const record = await scheduleService.getById(req.params.id);
     await scheduleService.remove(req.params.id);
+
+    const { userLabel, shiftLabel } = await describeAssignment(record.user_id, record.shift_id);
+    await recordAudit(req, {
+      action: 'schedule.remove',
+      entityType: 'Schedule',
+      entityId: record.record_id,
+      summary: `Зняв(ла) ${userLabel} зі зміни ${shiftLabel}`,
+    });
+
     res.status(204).send();
   }
 }

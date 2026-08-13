@@ -8,6 +8,7 @@ const reportsRoutes = require('./reportsRoutes');
 const authRoutes = require('./authRoutes');
 const peopleRoutes = require('./peopleRoutes');
 const activityAssignmentRoutes = require('./activityAssignmentRoutes');
+const auditLogRoutes = require('./auditLogRoutes');
 
 const router = express.Router();
 
@@ -24,5 +25,6 @@ router.use('/reports', reportsRoutes);
 router.use('/auth', authRoutes);
 router.use('/people', peopleRoutes);
 router.use('/activity-assignments', activityAssignmentRoutes);
+router.use('/audit-log', auditLogRoutes);
 
 module.exports = router;

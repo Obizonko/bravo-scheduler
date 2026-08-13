@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Bravo | Журнал</title>
+
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/app.css">
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+
+<div class="layout">
+
+    <aside class="sidebar">
+        <div class="logo">
+            <span class="logo-dot"></span>
+            <h2>Bravo</h2>
+        </div>
+
+        <nav>
+            <a href="index.html" class="nav-item">
+                <i data-lucide="users"></i>
+                <span>Люди</span>
+            </a>
+            <a href="sklad.html" class="nav-item">
+                <i data-lucide="package"></i>
+                <span>Склад</span>
+            </a>
+            <a href="tec.html" class="nav-item">
+                <i data-lucide="zap"></i>
+                <span>ТЕЦ</span>
+            </a>
+            <a href="vodii.html" class="nav-item">
+                <i data-lucide="car"></i>
+                <span>Водії</span>
+            </a>
+            <a href="masterplan.html" class="nav-item">
+                <i data-lucide="calendar-clock"></i>
+                <span>Майстер-план</span>
+            </a>
+            <a href="monitoring.html" class="nav-item">
+                <i data-lucide="activity"></i>
+                <span>Моніторинг</span>
+            </a>
+            <a href="admins.html" class="nav-item">
+                <i data-lucide="shield"></i>
+                <span>Адміни</span>
+            </a>
+            <a href="logs.html" class="nav-item active">
+                <i data-lucide="scroll-text"></i>
+                <span>Журнал</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main">
+
+        <header class="topbar">
+            <div>
+                <h1>Журнал дій</h1>
+                <p>Хто що зробив зі змінами, активностями й призначеннями - видно лише супер-адміну.</p>
+            </div>
+            <div id="authBadge"></div>
+        </header>
+
+        <div id="content">
+            <div class="spinner-hint">Завантаження...</div>
+        </div>
+
+    </main>
+
+</div>
+
+<script src="js/api.js"></script>
+<script>
+    lucide.createIcons();
+    renderAuthBadge(document.getElementById('authBadge'));
+    initMobileNav();
+
+    const content = document.getElementById('content');
+
+    const ACTION_LABEL = {
+        'shift.create': 'Створено зміну',
+        'shift.update': 'Змінено зміну',
+        'shift.delete': 'Видалено зміну',
+        'schedule.assign': 'Призначення',
+        'schedule.remove': 'Зняття призначення',
+        'master_plan.create': 'Створено активність',
+        'master_plan.update': 'Змінено активність',
+        'master_plan.delete': 'Видалено активність',
+        'activity_assignment.create': 'Додано участь',
+        'activity_assignment.remove': 'Прибрано участь',
+        'user.role_change': 'Зміна ролі',
+    };
+
+    function renderGate() {
+        content.innerHTML = `
+            <div class="card empty-state">
+                <p>Ця сторінка доступна лише супер-адміну.</p>
+                <p style="margin-top:10px;">
+                    <a class="primary-btn" style="display:inline-block; text-decoration:none;" href="login.html">Увійти</a>
+                </p>
+            </div>
+        `;
+    }
+
+    function formatDateTime(iso) {
+        const d = new Date(iso);
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${pad(d.getDate())}.${pad(d.getMonth() + 1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    let logsLoaded = false;
+
+    async function renderLog() {
+        if (!logsLoaded) content.innerHTML = '<div class="spinner-hint">Завантаження...</div>';
+        try {
+            const records = await Api.get('/audit-log');
+            logsLoaded = true;
+
+            const rows = records.map((r) => `
+                <tr>
+                    <td style="white-space:nowrap;">${formatDateTime(r.createdAt)}</td>
+                    <td>${r.actor_name}</td>
+                    <td><span class="tag">${ACTION_LABEL[r.action] || r.action}</span></td>
+                    <td>${r.summary}</td>
+                </tr>
+            `).join('');
+
+            content.innerHTML = `
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                        <span style="color:var(--text-secondary); font-size:13px;">${records.length} записів (останні найновіші)</span>
+                        <button type="button" class="outline-btn" style="width:auto; height:auto; padding:8px 16px; margin:0;" id="refreshLogBtn">Оновити</button>
+                    </div>
+                    <table class="admin-table">
+                        <thead>
+                            <tr><th>Час</th><th>Хто</th><th>Дія</th><th>Деталі</th></tr>
+                        </thead>
+                        <tbody>${rows || '<tr><td colspan="4" class="empty-state">Ще немає записів.</td></tr>'}</tbody>
+                    </table>
+                </div>
+            `;
+            document.getElementById('refreshLogBtn').addEventListener('click', renderLog);
+        } catch (err) {
+            if (!logsLoaded) content.innerHTML = '';
+            showBanner(err.message || 'Не вдалося завантажити журнал дій');
+        }
+    }
+
+    if (!Session.isSuperAdmin()) {
+        renderGate();
+    } else {
+        renderLog();
+    }
+</script>
+
+</body>
+</html>

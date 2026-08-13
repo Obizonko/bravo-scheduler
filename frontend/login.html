@@ -65,7 +65,7 @@
         resultEl.innerHTML = '<p class="login-role-hint">Перевірка...</p>';
         try {
             const data = await Api.post('/auth/pin', { pin });
-            Session.set(data.role, pin);
+            Session.set(data.role, pin, data.user_id, data.name);
             const label = data.role === 'super_admin' ? 'супер-адміна' : 'адміна';
             resultEl.innerHTML = `<p class="login-role-hint">Успішно увійшли як ${label}. Переходимо...</p>`;
             const target = data.role === 'super_admin' ? 'admins.html' : 'sklad.html';

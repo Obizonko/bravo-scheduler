@@ -9,7 +9,11 @@ const SERVICE_TYPES = ['Склад', 'ТЕЦ', 'Поїздка', 'Зовнішн
 
 const STATUSES = ['Assigned', 'Replacement', 'NeedsReplacement', 'Completed'];
 
-const ROLES = ['member', 'lead'];
+// 'super_admin' раніше існував лише як env-PIN без запису в users - тепер це
+// звичайна роль (для персонального PIN + ідентичності в аудит-логу), але API
+// (userValidator) свідомо не дозволяє її встановлювати через PUT /users/:id -
+// призначається лише через seed (див. database/seedSuperAdmin.js).
+const ROLES = ['member', 'lead', 'super_admin'];
 
 /**
  * Контрольований словник навантаження активностей Master Plan.

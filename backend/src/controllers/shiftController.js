@@ -1,5 +1,6 @@
 const shiftService = require('../services/shiftService');
 const rulesEngineService = require('../services/rulesEngineService');
+const { recordAudit } = require('../utils/auditLog');
 
 class ShiftController {
   async getAll(req, res) {
@@ -32,16 +33,36 @@ class ShiftController {
 
   async create(req, res) {
     const shift = await shiftService.create(req.body);
+    await recordAudit(req, {
+      action: 'shift.create',
+      entityType: 'Shift',
+      entityId: shift.shift_id,
+      summary: `Створив(ла) зміну «${shift.service_type}» ${shift.date} ${shift.time_start}–${shift.time_end}`,
+    });
     res.status(201).json({ success: true, data: shift });
   }
 
   async update(req, res) {
     const shift = await shiftService.update(req.params.id, req.body);
+    await recordAudit(req, {
+      action: 'shift.update',
+      entityType: 'Shift',
+      entityId: shift.shift_id,
+      summary: `Змінив(ла) зміну «${shift.service_type}» ${shift.date}: тепер ${shift.time_start}–${shift.time_end}`,
+    });
     res.status(200).json({ success: true, data: shift });
   }
 
   async remove(req, res) {
+    // Знімок ДО видалення - інакше після remove() нема звідки взяти деталі для логу.
+    const shift = await shiftService.getById(req.params.id);
     await shiftService.remove(req.params.id);
+    await recordAudit(req, {
+      action: 'shift.delete',
+      entityType: 'Shift',
+      entityId: shift.shift_id,
+      summary: `Видалив(ла) зміну «${shift.service_type}» ${shift.date} ${shift.time_start}–${shift.time_end}`,
+    });
     res.status(204).send();
   }
 }
