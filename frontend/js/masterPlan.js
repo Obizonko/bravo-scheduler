@@ -316,6 +316,106 @@ class MasterPlanBoard {
         await this.load();
     }
 
+    /**
+     * Форма створення активності (назва/день-або-щодня/час/навантаження явно,
+     * а не лише клік/драг по сітці, де назва завжди "Нова активність" і
+     * доводиться відкривати редагування одразу після).
+     */
+    openCreateModal() {
+        const existing = document.getElementById('mpCreateOverlay');
+        if (existing) existing.remove();
+
+        const dates = this.weekDates;
+        const today = todayDateStr();
+        const defaultDate = dates.includes(today) ? today : dates[0];
+        const fieldStyle = 'width:100%; margin-top:4px; padding:8px 10px; border:1px solid var(--border); border-radius:10px; font-family:inherit;';
+
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.id = 'mpCreateOverlay';
+        overlay.innerHTML = `
+            <div class="modal-box" style="max-width:400px;" role="dialog" aria-modal="true">
+                <div class="modal-header">
+                    <h2>Нова активність</h2>
+                    <button type="button" class="modal-close-btn" id="mpCreateCloseBtn">×</button>
+                </div>
+                <form id="mpCreateForm">
+                    <label class="checkbox-label" style="display:block; margin-bottom:10px;">
+                        Назва
+                        <input type="text" id="mpCreateName" required minlength="2" style="${fieldStyle}">
+                    </label>
+                    <label class="checkbox-label" style="margin-bottom:10px;">
+                        <input type="checkbox" id="mpCreateDaily"> Щодня (в один і той самий час кожного дня)
+                    </label>
+                    <label class="checkbox-label" style="display:block; margin-bottom:10px;" id="mpCreateDateWrap">
+                        День
+                        <select id="mpCreateDate" style="${fieldStyle}">
+                            ${dates.map((d) => `<option value="${d}" ${d === defaultDate ? 'selected' : ''}>${formatDayLabel(d)}</option>`).join('')}
+                        </select>
+                    </label>
+                    <label class="checkbox-label" style="display:block; margin-bottom:10px;">
+                        Початок
+                        <input type="time" id="mpCreateStart" value="09:00" required style="${fieldStyle}">
+                    </label>
+                    <label class="checkbox-label" style="display:block; margin-bottom:10px;">
+                        Кінець
+                        <input type="time" id="mpCreateEnd" value="10:00" required style="${fieldStyle}">
+                    </label>
+                    <label class="checkbox-label" style="display:block; margin-bottom:14px;">
+                        Рівень навантаження
+                        <select id="mpCreateWorkload" style="${fieldStyle}">
+                            ${workloadOptionsHtml('normal')}
+                        </select>
+                    </label>
+                    <button type="submit" class="primary-btn">Створити</button>
+                </form>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        const close = () => overlay.remove();
+        document.getElementById('mpCreateCloseBtn').addEventListener('click', close);
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+        const dailyCheckbox = document.getElementById('mpCreateDaily');
+        const dateWrap = document.getElementById('mpCreateDateWrap');
+        dailyCheckbox.addEventListener('change', () => {
+            dateWrap.style.display = dailyCheckbox.checked ? 'none' : '';
+        });
+
+        document.getElementById('mpCreateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('mpCreateName').value.trim();
+            const isDaily = dailyCheckbox.checked;
+            const date = document.getElementById('mpCreateDate').value;
+            const timeStart = document.getElementById('mpCreateStart').value;
+            const timeEnd = document.getElementById('mpCreateEnd').value;
+            const workload = document.getElementById('mpCreateWorkload').value;
+            if (name.length < 2) return;
+            if (timeEnd === timeStart) {
+                showBanner('Початок і кінець не можуть збігатись');
+                return;
+            }
+
+            const payload = {
+                name_of_activity: name,
+                is_daily: isDaily,
+                date: isDaily ? null : date,
+                time_start: timeStart,
+                time_end: timeEnd,
+                workload,
+            };
+            close();
+            try {
+                await Api.post('/master-plan', payload);
+                showBanner('Активність створено', 'success');
+            } catch (err) {
+                showBanner(err.message || 'Не вдалося створити активність');
+            }
+            await this.load();
+        });
+    }
+
     // --- Переміщення наявної активності (перетягування самого бару, той самий день/доріжка) ---
 
     onBarMouseDown(e, bar) {
@@ -559,6 +659,15 @@ function initMasterPlanPage() {
     document.getElementById('prevWeekBtn').addEventListener('click', () => board.shiftWeek(-1));
     document.getElementById('nextWeekBtn').addEventListener('click', () => board.shiftWeek(1));
     document.getElementById('todayWeekBtn').addEventListener('click', () => board.goToday());
+
+    const createBtn = document.getElementById('createActivityBtn');
+    if (createBtn) {
+        if (Session.isLead()) {
+            createBtn.addEventListener('click', () => board.openCreateModal());
+        } else {
+            createBtn.style.display = 'none';
+        }
+    }
 
     board.load();
 }

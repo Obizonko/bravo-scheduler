@@ -1,8 +1,9 @@
 'use strict';
 
 /**
- * Тижневий грід водіїв: рядок на людину (водії - першими), колонка на день
- * тижня. У кожній клітинці - інтервали зайнятості (виїзди) цієї людини того
+ * Тижневий грід водіїв: рядок на КОЖНОГО ВОДІЯ (is_driver=true - виїзд завжди
+ * потребує водія, тому інші люди тут узагалі не рядки), колонка на день
+ * тижня. У кожній клітинці - інтервали зайнятості (виїзди) цього водія того
  * дня, з можливістю додати новий інтервал чи прибрати наявний.
  */
 
@@ -70,10 +71,9 @@ class DriverWeek {
         const weekLabel = document.getElementById('weekLabel');
         if (weekLabel) weekLabel.textContent = formatWeekRangeLabel(this.monday);
 
-        const people = [...this.board.people].sort((a, b) => {
-            if (a.is_driver !== b.is_driver) return a.is_driver ? -1 : 1;
-            return a.name.localeCompare(b.name, 'uk');
-        });
+        const people = this.board.people
+            .filter((p) => p.is_driver)
+            .sort((a, b) => a.name.localeCompare(b.name, 'uk'));
         const intervalsByPerson = this.buildIntervalsByPerson();
         const dates = this.board.days.map((d) => d.date);
 
@@ -102,12 +102,13 @@ class DriverWeek {
     }
 
     rowHtml(person, dates, byDate) {
-        const driverMark = person.is_driver ? ' 🚗' : '';
+        // Без 🚗-мітки - на цій сторінці й так усі рядки водії (render() уже
+        // відфільтрував), позначати це на кожному рядку було б зайвим.
         const cellsHtml = dates
             .map((date) => this.cellHtml(person.user_id, date, byDate.get(date) || []))
             .join('');
         return `
-            <div class="dw-label-cell">${person.name}${driverMark}</div>
+            <div class="dw-label-cell">${person.name}</div>
             ${cellsHtml}
         `;
     }

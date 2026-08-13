@@ -447,6 +447,79 @@ class WeekCalendar {
         await this.load();
     }
 
+    /**
+     * Форма створення зміни (день/час/колонка явно, а не лише клік/драг по
+     * сітці) - для точного часу, коли важко влучити мишею, або коли зручніше
+     * просто ввести значення.
+     */
+    openCreateModal() {
+        const existing = document.getElementById('wcCreateOverlay');
+        if (existing) existing.remove();
+
+        const dates = this.board.days.map((d) => d.date);
+        const today = todayDateStr();
+        const defaultDate = dates.includes(today) ? today : dates[0];
+        const defaultEnd = minToHm(hmToMin('09:00') + this.defaultDurationMin);
+        const fieldStyle = 'width:100%; margin-top:4px; padding:8px 10px; border:1px solid var(--border); border-radius:10px; font-family:inherit;';
+
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.id = 'wcCreateOverlay';
+        overlay.innerHTML = `
+            <div class="modal-box" style="max-width:380px;" role="dialog" aria-modal="true">
+                <div class="modal-header">
+                    <h2>Нова зміна</h2>
+                    <button type="button" class="modal-close-btn" id="wcCreateCloseBtn">×</button>
+                </div>
+                <form id="wcCreateForm">
+                    <label class="checkbox-label" style="display:block; margin-bottom:10px;">
+                        День
+                        <select id="wcCreateDate" style="${fieldStyle}">
+                            ${dates.map((d) => `<option value="${d}" ${d === defaultDate ? 'selected' : ''}>${formatDayLabel(d)}</option>`).join('')}
+                        </select>
+                    </label>
+                    <label class="checkbox-label" style="display:block; margin-bottom:10px;">
+                        Початок
+                        <input type="time" id="wcCreateStart" value="09:00" required style="${fieldStyle}">
+                    </label>
+                    <label class="checkbox-label" style="display:block; margin-bottom:10px;">
+                        Кінець
+                        <input type="time" id="wcCreateEnd" value="${defaultEnd}" required style="${fieldStyle}">
+                    </label>
+                    <label class="checkbox-label" style="display:block; margin-bottom:14px;">
+                        Колонка (черговість)
+                        <select id="wcCreateLane" style="${fieldStyle}">
+                            <option value="">Автоматично</option>
+                            ${Array.from({ length: this.lanes }, (_, i) => `<option value="${i}">${i + 1}</option>`).join('')}
+                        </select>
+                    </label>
+                    <button type="submit" class="primary-btn">Створити</button>
+                </form>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        const close = () => overlay.remove();
+        document.getElementById('wcCreateCloseBtn').addEventListener('click', close);
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+        document.getElementById('wcCreateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const date = document.getElementById('wcCreateDate').value;
+            const startMin = hmToMin(document.getElementById('wcCreateStart').value);
+            const endMin = hmToMin(document.getElementById('wcCreateEnd').value);
+            const laneValue = document.getElementById('wcCreateLane').value;
+            // Рівність заборонена (нульова тривалість), але kінець < початку - ОК,
+            // це перехід зміни через північ (той самий бекенд-контракт, що й у drag).
+            if (endMin === startMin) {
+                showBanner('Початок і кінець не можуть збігатись');
+                return;
+            }
+            close();
+            await this.createShift(date, laneValue === '' ? null : Number(laneValue), startMin, endMin);
+        });
+    }
+
     async onAssignSlot(e) {
         const select = e.currentTarget;
         const shiftId = select.dataset.shiftId;
@@ -614,6 +687,15 @@ function initWeekCalendarPage(serviceType, defaultDurationMin, lanes, showWorklo
     document.getElementById('prevWeekBtn').addEventListener('click', () => calendar.shiftWeek(-1));
     document.getElementById('nextWeekBtn').addEventListener('click', () => calendar.shiftWeek(1));
     document.getElementById('todayWeekBtn').addEventListener('click', () => calendar.goToday());
+
+    const createBtn = document.getElementById('createShiftBtn');
+    if (createBtn) {
+        if (Session.isLead()) {
+            createBtn.addEventListener('click', () => calendar.openCreateModal());
+        } else {
+            createBtn.style.display = 'none';
+        }
+    }
 
     calendar.load();
 }
