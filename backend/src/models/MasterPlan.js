@@ -19,6 +19,9 @@ const masterPlanSchema = new Schema(
     date: { type: String, default: null },
     is_daily: { type: Boolean, default: false },
     activity_kind: { type: String, default: 'other', trim: true },
+    // Колір бару в календарі (ключ палітри ACTIVITY_COLORS у фронтенді, не сам hex) -
+    // так само вільний рядок, не model-level enum, з тих самих причин, що й workload.
+    color: { type: String, default: 'blue' },
   },
   {
     timestamps: true,

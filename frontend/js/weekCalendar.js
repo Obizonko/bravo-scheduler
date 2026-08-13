@@ -35,8 +35,21 @@ class WeekCalendar {
         this.dragState = null;
         this._scrolledOnce = false;
 
-        document.addEventListener('mousemove', (e) => this.onDocMouseMove(e));
-        document.addEventListener('mouseup', () => this.onDocMouseUp());
+        // pointerdown/move/up (не mouse*) - той самий код обробляє і мишу, і тач/
+        // перо однаково, без окремих обробників для мобільних жестів.
+        document.addEventListener('pointermove', (e) => this.onDocMouseMove(e));
+        document.addEventListener('pointerup', () => this.onDocMouseUp());
+        // pointercancel (система перервала жест - напр. сповіщення поверх екрана під
+        // час тач-драгу) - без цього dragState лишився б "застряглим", ламаючи
+        // наступну взаємодію. Нічого не зберігаємо, лише скидаємо й перемальовуємо.
+        document.addEventListener('pointercancel', () => {
+            if (this.dragState && this.dragState.mode === 'create' && this.dragState.ghost) {
+                this.dragState.ghost.remove();
+            }
+            this.dragState = null;
+            DragTooltip.hide();
+            this.render();
+        });
     }
 
     shiftWeek(delta) {
@@ -136,6 +149,12 @@ class WeekCalendar {
     }
 
     /** Сірі накладення для колонок, де за поточним рівнем навантаження людина не потрібна. */
+    /** Горизонтальна лінія поточного часу - викликач сам перевіряє, що це сьогоднішня колонка. */
+    nowLineHtml() {
+        const top = minToPx(hmToMin(nowTimeStr()));
+        return `<div class="wc-now-line" style="top:${top}px;"><span class="wc-now-dot"></span></div>`;
+    }
+
     workloadOverlayHtml(date, laneIdx) {
         if (!this.showWorkloadOverlay || laneIdx === 0) return '';
         return this.computeHeadcountSegments(date)
@@ -192,14 +211,21 @@ class WeekCalendar {
         const weekLabel = document.getElementById('weekLabel');
         if (weekLabel) weekLabel.textContent = formatWeekRangeLabel(this.monday);
 
+        const today = todayDateStr();
         const laneNumbersHtml = Array.from({ length: this.lanes }, (_, i) => `<span>${i + 1}</span>`).join('');
         const dayHeaders = this.board.days
-            .map((day) => `
-                <div class="wc-day-header" style="grid-column: span ${this.lanes};">
+            .map((day) => {
+                // wc-day-start - товстіша межа зліва саме на межі між ДНЯМИ (а не
+                // між доріжками одного дня, де межа лишається тонкою) - без цього
+                // всі колонки виглядали однаково й дні губились одне в одному.
+                const todayClass = day.date === today ? ' wc-today' : '';
+                return `
+                <div class="wc-day-header wc-day-start${todayClass}" style="grid-column: span ${this.lanes};">
                     <div class="wc-day-title">${formatDayLabel(day.date)}</div>
                     <div class="wc-day-lane-labels">${laneNumbersHtml}</div>
                 </div>
-            `)
+            `;
+            })
             .join('');
 
         const hourRuler = `<div class="wc-hour-ruler" style="height:${DAY_HEIGHT_PX}px;">${hourLabelsHtml()}</div>`;
@@ -207,13 +233,17 @@ class WeekCalendar {
         const dayLanesHtml = this.board.days
             .map((day) => {
                 const placed = this.assignLanes(day.shifts);
+                const isToday = day.date === today;
                 const laneBars = Array.from({ length: this.lanes }, (_, laneIdx) => {
                     const overlayHtml = this.workloadOverlayHtml(day.date, laneIdx);
+                    const nowLine = isToday ? this.nowLineHtml() : '';
                     const barsHtml = placed
                         .filter((p) => p.lane === laneIdx)
                         .map((p) => this.barHtml(p.shift))
                         .join('');
-                    return `<div class="wc-lane-track" style="height:${DAY_HEIGHT_PX}px;" data-date="${day.date}" data-lane="${laneIdx}">${overlayHtml}${barsHtml}</div>`;
+                    const dayStartClass = laneIdx === 0 ? ' wc-day-start' : '';
+                    const todayClass = isToday ? ' wc-today' : '';
+                    return `<div class="wc-lane-track${dayStartClass}${todayClass}" style="height:${DAY_HEIGHT_PX}px;" data-date="${day.date}" data-lane="${laneIdx}">${overlayHtml}${nowLine}${barsHtml}</div>`;
                 }).join('');
                 return laneBars;
             })
@@ -231,7 +261,7 @@ class WeekCalendar {
         `;
 
         this.container.querySelectorAll('.wc-lane-track').forEach((track) => {
-            track.addEventListener('mousedown', (e) => this.onTrackMouseDown(e, track));
+            track.addEventListener('pointerdown', (e) => this.onTrackMouseDown(e, track));
         });
         this.container.querySelectorAll('.wc-assign-select').forEach((select) => {
             select.addEventListener('change', (e) => this.onAssignSlot(e));
@@ -246,10 +276,10 @@ class WeekCalendar {
             btn.addEventListener('click', (e) => this.onDeleteEmptyShift(e));
         });
         this.container.querySelectorAll('.wc-resize-handle').forEach((handle) => {
-            handle.addEventListener('mousedown', (e) => this.onResizeMouseDown(e));
+            handle.addEventListener('pointerdown', (e) => this.onResizeMouseDown(e));
         });
         this.container.querySelectorAll('.wc-bar').forEach((bar) => {
-            bar.addEventListener('mousedown', (e) => this.onBarMouseDown(e, bar));
+            bar.addEventListener('pointerdown', (e) => this.onBarMouseDown(e, bar));
         });
 
         const scrollEl = this.container.querySelector('.wc-scroll');

@@ -35,8 +35,21 @@ class MasterPlanBoard {
         // додатково породжує нативну подію 'click'.
         this._suppressClick = false;
 
-        document.addEventListener('mousemove', (e) => this.onDocMouseMove(e));
-        document.addEventListener('mouseup', () => this.onDocMouseUp());
+        // pointerdown/move/up (не mouse*) - той самий код обробляє і мишу, і тач/
+        // перо однаково, без окремих обробників для мобільних жестів.
+        document.addEventListener('pointermove', (e) => this.onDocMouseMove(e));
+        document.addEventListener('pointerup', () => this.onDocMouseUp());
+        // pointercancel (система перервала жест) - без цього dragState лишився б
+        // "застряглим". Нічого не зберігаємо, лише скидаємо й перемальовуємо.
+        document.addEventListener('pointercancel', () => {
+            if (this.dragState && this.dragState.mode === 'create' && this.dragState.ghost) {
+                this.dragState.ghost.remove();
+            }
+            this.dragState = null;
+            this._suppressClick = false;
+            DragTooltip.hide();
+            this.render();
+        });
     }
 
     shiftWeek(delta) {
@@ -77,6 +90,12 @@ class MasterPlanBoard {
     }
 
     /** Авто-пакування без фіксованого ліміту доріжок - мінімальна кількість без перетину за часом. */
+    /** Горизонтальна лінія поточного часу - викликач сам перевіряє, що це сьогоднішня колонка. */
+    nowLineHtml() {
+        const top = minToPx(hmToMin(nowTimeStr()));
+        return `<div class="wc-now-line" style="top:${top}px;"><span class="wc-now-dot"></span></div>`;
+    }
+
     autoPackLanes(activities) {
         const sorted = [...activities].sort((a, b) => a.time_start.localeCompare(b.time_start));
         const laneEndMin = [];
@@ -113,8 +132,12 @@ class MasterPlanBoard {
         const lanes = Math.max(1, ...perDay.map((d) => d.laneCount)) + 1;
         this.lanes = lanes;
 
+        const today = todayDateStr();
         const dayHeaders = dates
-            .map((date) => `<div class="wc-day-header" style="grid-column: span ${lanes};"><div class="wc-day-title">${formatDayLabel(date)}</div></div>`)
+            .map((date) => {
+                const todayClass = date === today ? ' wc-today' : '';
+                return `<div class="wc-day-header wc-day-start${todayClass}" style="grid-column: span ${lanes};"><div class="wc-day-title">${formatDayLabel(date)}</div></div>`;
+            })
             .join('');
 
         const hourRuler = `<div class="wc-hour-ruler" style="height:${DAY_HEIGHT_PX}px;">${hourLabelsHtml()}</div>`;
@@ -122,12 +145,16 @@ class MasterPlanBoard {
         const dayLanesHtml = dates
             .map((date, dayIdx) => {
                 const { placed } = perDay[dayIdx];
+                const isToday = date === today;
                 return Array.from({ length: lanes }, (_, laneIdx) => {
+                    const nowLine = isToday ? this.nowLineHtml() : '';
                     const barsHtml = placed
                         .filter((p) => p.lane === laneIdx)
                         .map((p) => this.barHtml(p.activity, date))
                         .join('');
-                    return `<div class="wc-lane-track mp-track" style="height:${DAY_HEIGHT_PX}px;" data-date="${date}">${barsHtml}</div>`;
+                    const dayStartClass = laneIdx === 0 ? ' wc-day-start' : '';
+                    const todayClass = isToday ? ' wc-today' : '';
+                    return `<div class="wc-lane-track mp-track${dayStartClass}${todayClass}" style="height:${DAY_HEIGHT_PX}px;" data-date="${date}">${nowLine}${barsHtml}</div>`;
                 }).join('');
             })
             .join('');
@@ -144,10 +171,10 @@ class MasterPlanBoard {
         `;
 
         this.container.querySelectorAll('.mp-track').forEach((track) => {
-            track.addEventListener('mousedown', (e) => this.onTrackMouseDown(e, track));
+            track.addEventListener('pointerdown', (e) => this.onTrackMouseDown(e, track));
         });
         this.container.querySelectorAll('.mp-bar').forEach((bar) => {
-            bar.addEventListener('mousedown', (e) => this.onBarMouseDown(e, bar));
+            bar.addEventListener('pointerdown', (e) => this.onBarMouseDown(e, bar));
             bar.addEventListener('click', (e) => {
                 if (e.target.closest('.wc-resize-handle')) return;
                 if (this._suppressClick) { this._suppressClick = false; return; }
@@ -155,7 +182,7 @@ class MasterPlanBoard {
             });
         });
         this.container.querySelectorAll('.wc-resize-handle').forEach((handle) => {
-            handle.addEventListener('mousedown', (e) => this.onResizeMouseDown(e));
+            handle.addEventListener('pointerdown', (e) => this.onResizeMouseDown(e));
         });
 
         const scrollEl = this.container.querySelector('.wc-scroll');
@@ -179,9 +206,10 @@ class MasterPlanBoard {
             ? `<span class="wc-resize-handle" data-activity-id="${activity.record_id}" data-occurrence-date="${occurrenceDate}" title="Потягніть - змінити тривалість"></span>`
             : '';
         const dragTitle = Session.isLead() ? ' title="Клік - редагувати, перетягніть - перенести на інший час"' : '';
+        const colorStyle = activityColorStyle(activity.color);
 
         return `
-            <div class="wc-bar mp-bar" style="top:${top}px; height:${height}px;"
+            <div class="wc-bar mp-bar" style="top:${top}px; height:${height}px; ${colorStyle}"
                  data-activity-id="${activity.record_id}" data-occurrence-date="${occurrenceDate}"${dragTitle}>
                 <span class="wc-bar-time">${activity.time_start}–${activity.time_end}${dailyMark}</span>
                 <span class="wc-bar-name">${activity.name_of_activity}</span>
@@ -361,11 +389,15 @@ class MasterPlanBoard {
                         Кінець
                         <input type="time" id="mpCreateEnd" value="10:00" required style="${fieldStyle}">
                     </label>
-                    <label class="checkbox-label" style="display:block; margin-bottom:14px;">
+                    <label class="checkbox-label" style="display:block; margin-bottom:10px;">
                         Рівень навантаження
                         <select id="mpCreateWorkload" style="${fieldStyle}">
                             ${workloadOptionsHtml('normal')}
                         </select>
+                    </label>
+                    <label class="checkbox-label" style="display:block; margin-bottom:14px;">
+                        Колір
+                        ${colorSwatchesHtml('blue', 'mpCreateColor')}
                     </label>
                     <button type="submit" class="primary-btn">Створити</button>
                 </form>
@@ -376,6 +408,7 @@ class MasterPlanBoard {
         const close = () => overlay.remove();
         document.getElementById('mpCreateCloseBtn').addEventListener('click', close);
         overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+        wireColorSwatches(overlay);
 
         const dailyCheckbox = document.getElementById('mpCreateDaily');
         const dateWrap = document.getElementById('mpCreateDateWrap');
@@ -391,6 +424,7 @@ class MasterPlanBoard {
             const timeStart = document.getElementById('mpCreateStart').value;
             const timeEnd = document.getElementById('mpCreateEnd').value;
             const workload = document.getElementById('mpCreateWorkload').value;
+            const color = document.getElementById('mpCreateColor').value;
             if (name.length < 2) return;
             if (timeEnd === timeStart) {
                 showBanner('Початок і кінець не можуть збігатись');
@@ -404,6 +438,7 @@ class MasterPlanBoard {
                 time_start: timeStart,
                 time_end: timeEnd,
                 workload,
+                color,
             };
             close();
             try {
@@ -591,6 +626,10 @@ function openActivityEditModal(activity, occurrenceDate, board) {
                     <label class="checkbox-label" style="margin-bottom:14px;">
                         <input type="checkbox" id="mpEditDaily" ${activity.is_daily ? 'checked' : ''}> Щодня (в один і той самий час кожного дня)
                     </label>
+                    <label class="checkbox-label" style="display:block; margin-bottom:14px;">
+                        Колір
+                        ${colorSwatchesHtml(activity.color, 'mpEditColor')}
+                    </label>
                     <div style="display:flex; gap:10px;">
                         <button type="submit" class="primary-btn" style="flex:1;">Зберегти</button>
                         <button type="button" class="outline-btn" id="mpEditDeleteBtn">Видалити</button>
@@ -605,6 +644,7 @@ function openActivityEditModal(activity, occurrenceDate, board) {
     const close = () => overlay.remove();
     document.getElementById('mpEditCloseBtn').addEventListener('click', close);
     overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    wireColorSwatches(overlay);
 
     overlay.querySelectorAll('.modal-tab-btn').forEach((btn) => {
         btn.addEventListener('click', () => {
@@ -621,9 +661,10 @@ function openActivityEditModal(activity, occurrenceDate, board) {
         const name = document.getElementById('mpEditName').value.trim();
         const workload = document.getElementById('mpEditWorkload').value;
         const isDaily = document.getElementById('mpEditDaily').checked;
+        const color = document.getElementById('mpEditColor').value;
         if (name.length < 2) return;
 
-        const payload = { name_of_activity: name, workload, is_daily: isDaily };
+        const payload = { name_of_activity: name, workload, is_daily: isDaily, color };
         payload.date = isDaily ? null : (activity.date || occurrenceDate);
 
         try {

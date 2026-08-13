@@ -235,6 +235,54 @@ const SERVICE_TYPE_ICONS = {
 
 const RULE_SEVERITY_LABEL = { violation: 'Блок', warning: 'Увага' };
 
+/**
+ * Палітра кольорів барів активності Master Plan (masterPlan.js, personModal.js).
+ * Ключі мусять збігатись із backend/src/domain/constants.js ACTIVITY_COLORS -
+ * там лише контрольований словник для валідації, самі hex живуть тут.
+ */
+const ACTIVITY_COLORS = {
+  blue: { label: 'Синій', bg: '#E0EDFF', border: '#93B4E8', text: '#1E3A6E' },
+  green: { label: 'Зелений', bg: '#E3F9E5', border: '#86D992', text: '#1B5E20' },
+  pink: { label: 'Рожевий', bg: '#FDE2E4', border: '#F4A6AD', text: '#7A1F2B' },
+  purple: { label: 'Фіолетовий', bg: '#EDE7F6', border: '#B39DDB', text: '#4527A0' },
+  orange: { label: 'Помаранчевий', bg: '#FFF1DE', border: '#FFB74D', text: '#8A5300' },
+  yellow: { label: 'Жовтий', bg: '#FFF9D9', border: '#E6C200', text: '#5B4400' },
+  teal: { label: 'Бірюзовий', bg: '#E0F7FA', border: '#4DD0E1', text: '#006064' },
+  grey: { label: 'Сірий', bg: '#F3F4F6', border: '#B0B7C3', text: '#374151' },
+};
+
+/** Інлайн-стиль бару за ключем кольору - override .mp-bar CSS (специфічність inline > class). */
+function activityColorStyle(colorKey) {
+  const c = ACTIVITY_COLORS[colorKey] || ACTIVITY_COLORS.blue;
+  return `background:${c.bg}; border-color:${c.border}; color:${c.text};`;
+}
+
+/** Ряд клікабельних кружечків-кольорів + прихований input, куди пишеться обраний ключ. */
+function colorSwatchesHtml(selectedKey, inputId) {
+  const selected = selectedKey || 'blue';
+  const swatches = Object.entries(ACTIVITY_COLORS)
+    .map(([key, c]) => `
+        <button type="button" class="color-swatch ${key === selected ? 'selected' : ''}"
+            data-color="${key}" data-input-id="${inputId}"
+            style="background:${c.bg}; border-color:${c.border};" title="${c.label}"></button>
+    `)
+    .join('');
+  return `<div class="color-swatches">${swatches}</div><input type="hidden" id="${inputId}" value="${selected}">`;
+}
+
+/** Клік по кружечку - оновлює прихований input і візуально позначає обраний. Викликати після вставки colorSwatchesHtml() у DOM. */
+function wireColorSwatches(containerEl) {
+  containerEl.querySelectorAll('.color-swatch').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const inputId = btn.dataset.inputId;
+      const group = btn.closest('.color-swatches');
+      group.querySelectorAll('.color-swatch').forEach((b) => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      document.getElementById(inputId).value = btn.dataset.color;
+    });
+  });
+}
+
 // --- Дата-утиліти для тижневих грідів і місячного календаря ---
 // Рахуємо через UTC-епоху (не локальний Date-об'єкт напряму), той самий підхід,
 // що й на бекенді (domain/time.js) - жодних сюрпризів з переведенням годинників.

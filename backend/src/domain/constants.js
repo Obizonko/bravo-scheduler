@@ -27,4 +27,11 @@ const ROLES = ['member', 'lead', 'super_admin'];
  */
 const WORKLOAD_LEVELS = ['peak', 'normal', 'quiet', 'all_hands', 'off_hours'];
 
-module.exports = { SERVICE_TYPES, STATUSES, ROLES, WORKLOAD_LEVELS };
+/**
+ * Палітра кольорів барів активності Master Plan (frontend/js/masterPlan.js
+ * ACTIVITY_COLORS - той самий список ключів, фактичні hex-значення живуть
+ * лише у фронтенді, тут - лише контрольований словник для валідації).
+ */
+const ACTIVITY_COLORS = ['blue', 'green', 'pink', 'purple', 'orange', 'yellow', 'teal', 'grey'];
+
+module.exports = { SERVICE_TYPES, STATUSES, ROLES, WORKLOAD_LEVELS, ACTIVITY_COLORS };

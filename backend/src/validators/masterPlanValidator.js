@@ -1,5 +1,5 @@
 const Joi = require('joi');
-const { WORKLOAD_LEVELS } = require('../domain/constants');
+const { WORKLOAD_LEVELS, ACTIVITY_COLORS } = require('../domain/constants');
 const { DATE_PATTERN, TIME_PATTERN, isValidCalendarDate } = require('../domain/time');
 
 const dateSchema = Joi.string()
@@ -48,6 +48,9 @@ const createMasterPlanSchema = Joi.object({
   date: dateSchema.allow(null),
   is_daily: isDailySchema.default(false),
   activity_kind: Joi.string().max(100).allow('', null),
+  color: Joi.string()
+    .valid(...ACTIVITY_COLORS)
+    .default('blue'),
 })
   .custom(exactlyOneOfDateOrDaily, 'date xor is_daily')
   .messages(dateOrDailyMessage);
@@ -62,6 +65,7 @@ const updateMasterPlanSchema = Joi.object({
   date: dateSchema.allow(null),
   is_daily: isDailySchema,
   activity_kind: Joi.string().max(100).allow('', null),
+  color: Joi.string().valid(...ACTIVITY_COLORS),
 })
   .min(1)
   .custom((value, helpers) => {

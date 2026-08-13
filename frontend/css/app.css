@@ -713,6 +713,10 @@
 
 .wc-lane-track {
     position: relative;
+    /* touch-action НЕ none тут навмисно - порожнє місце доріжки лишається
+       основним способом прокрутити календар пальцем (24 години заввишки).
+       Створення через драг на тачі поступається місцем скролу - для тач
+       краще використати кнопку "+ Створити..." (не потребує жесту). */
     border-left: 1px solid var(--border);
     background-image: repeating-linear-gradient(
         to bottom,
@@ -722,6 +726,45 @@
         transparent 44px
     );
     cursor: crosshair;
+}
+
+/* Товстіша, темніша межа саме на СТИКУ ДНІВ (перша доріжка кожного дня +
+   сам day-header, який і так один на день) - інакше межа між доріжками
+   одного дня й межа між різними днями виглядали однаково, і дні губились. */
+.wc-day-header.wc-day-start,
+.wc-lane-track.wc-day-start {
+    border-left: 2px solid #9CA3AF;
+}
+
+/* Легке підсвічування колонки(-ок) сьогоднішнього дня - і в шапці, і в
+   доріжках - щоб "де я зараз у тижні" було видно з першого погляду. */
+.wc-day-header.wc-today {
+    background: var(--primary-light);
+}
+
+.wc-lane-track.wc-today {
+    background-color: rgba(255, 214, 0, 0.05);
+}
+
+/* Горизонтальна лінія поточного часу - лише в доріжках сьогоднішнього дня. */
+.wc-now-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 0;
+    border-top: 2px solid var(--danger);
+    z-index: 1;
+    pointer-events: none;
+}
+
+.wc-now-dot {
+    position: absolute;
+    left: -4px;
+    top: -4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--danger);
 }
 
 .wc-bar {
@@ -737,6 +780,7 @@
     box-sizing: border-box;
     cursor: grab;
     user-select: none;
+    touch-action: none;
 }
 
 .wc-bar:active {
@@ -904,6 +948,7 @@
     bottom: -3px;
     height: 12px;
     cursor: ns-resize;
+    touch-action: none;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -923,6 +968,32 @@
 
 .wc-resize-handle:hover::after {
     background: rgba(0, 0, 0, 0.55);
+}
+
+/* Ряд вибору кольору активності (форми створення/редагування в masterPlan.js). */
+.color-swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.color-swatch {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid;
+    cursor: pointer;
+    padding: 0;
+    transition: transform var(--transition);
+}
+
+.color-swatch:hover {
+    transform: scale(1.12);
+}
+
+.color-swatch.selected {
+    box-shadow: 0 0 0 2px var(--card), 0 0 0 4px #111;
 }
 
 /* Плаваюча підказка точного часу під час драгу (створення/ресайз/переміщення) -
@@ -971,7 +1042,9 @@
     display: inline-block;
     font-size: 9px;
     font-weight: 700;
-    background: rgba(30, 58, 110, 0.12);
+    /* Нейтральний напівпрозорий чорний, а не прив'язаний до синьої палітри -
+       бар тепер може бути будь-якого кольору (ACTIVITY_COLORS, api.js). */
+    background: rgba(0, 0, 0, 0.12);
     border-radius: 4px;
     padding: 0 4px;
     margin-top: 1px;

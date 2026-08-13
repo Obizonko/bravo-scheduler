@@ -37,6 +37,12 @@ function autoPackEvents(events) {
     return { placed, laneCount: Math.max(1, laneEndMin.length) };
 }
 
+/** Горизонтальна лінія поточного часу - викликач сам перевіряє, що це сьогоднішня колонка. */
+function nowLineHtml() {
+    const top = minToPx(hmToMin(nowTimeStr()));
+    return `<div class="wc-now-line" style="top:${top}px;"><span class="wc-now-dot"></span></div>`;
+}
+
 function eventBarHtml(event) {
     const top = minToPx(hmToMin(event.time_start));
     const height = Math.max(minToPx(visualEndMin(event) - hmToMin(event.time_start)), 20);
@@ -52,6 +58,9 @@ function eventBarHtml(event) {
 
     // kind === 'activity'
     const cls = event.attending ? 'wc-bar mp-bar' : 'wc-bar wc-bar-empty';
+    // Колір застосовуємо лише для "бере участь" - "не бере участі" лишається
+    // пунктирним/приглушеним (стан важливіший за колір активності тут).
+    const colorStyle = event.attending ? activityColorStyle(event.activity.color) : '';
     const dailyMark = event.activity.is_daily ? ' 🔁' : '';
     const toggleBtn = Session.isLead()
         ? event.attending
@@ -59,7 +68,7 @@ function eventBarHtml(event) {
             : `<button type="button" class="agenda-toggle-mini" data-activity-id="${event.activity.record_id}" title="Додати на активність">+</button>`
         : '';
     return `
-        <div class="${cls}" style="top:${top}px; height:${height}px;">
+        <div class="${cls}" style="top:${top}px; height:${height}px; ${colorStyle}">
             <span class="wc-bar-time">${event.time_start}–${event.time_end}${dailyMark}</span>
             <span class="wc-bar-name">${event.label}${event.attending ? '' : ' (не бере участі)'}</span>
             ${toggleBtn}
@@ -112,17 +121,25 @@ async function renderCalendarTab(bodyEl, userId, monday) {
 
         const perDay = dates.map((date) => autoPackEvents(eventsForDate(date)));
         const lanes = Math.max(1, ...perDay.map((d) => d.laneCount));
+        const today = todayDateStr();
 
         const dayHeaders = dates
-            .map((date) => `<div class="wc-day-header" style="grid-column: span ${lanes};"><div class="wc-day-title">${formatDayLabel(date)}</div></div>`)
+            .map((date) => {
+                const todayClass = date === today ? ' wc-today' : '';
+                return `<div class="wc-day-header wc-day-start${todayClass}" style="grid-column: span ${lanes};"><div class="wc-day-title">${formatDayLabel(date)}</div></div>`;
+            })
             .join('');
         const hourRuler = `<div class="wc-hour-ruler" style="height:${DAY_HEIGHT_PX}px;">${hourLabelsHtml()}</div>`;
         const dayLanesHtml = dates
             .map((date, dayIdx) => {
                 const { placed } = perDay[dayIdx];
+                const isToday = date === today;
                 return Array.from({ length: lanes }, (_, laneIdx) => {
+                    const nowLine = isToday ? nowLineHtml() : '';
                     const barsHtml = placed.filter((p) => p.lane === laneIdx).map((p) => eventBarHtml(p.event)).join('');
-                    return `<div class="wc-lane-track" style="height:${DAY_HEIGHT_PX}px; cursor:default;">${barsHtml}</div>`;
+                    const dayStartClass = laneIdx === 0 ? ' wc-day-start' : '';
+                    const todayClass = isToday ? ' wc-today' : '';
+                    return `<div class="wc-lane-track${dayStartClass}${todayClass}" style="height:${DAY_HEIGHT_PX}px; cursor:default;">${nowLine}${barsHtml}</div>`;
                 }).join('');
             })
             .join('');
