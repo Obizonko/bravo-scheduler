@@ -64,10 +64,17 @@
         <header class="topbar">
             <div>
                 <h1>ТЕЦ</h1>
-                <p>Тижневий календар: клікніть чи потягніть у слоті, щоб створити зміну (до 2 слотів на день)</p>
+                <p>Тижневий календар: клікніть чи потягніть у слоті, щоб створити зміну (до 2 слотів на день). Готову подію можна перетягнути (змінити час) або потягнути за нижній край (розтягнути).</p>
             </div>
             <div id="authBadge"></div>
         </header>
+
+        <div class="agenda-legend">
+            <span><span class="agenda-legend-dot agenda-legend-dot--duty"></span>Призначена людина</span>
+            <span><span class="agenda-legend-dot agenda-legend-dot--free"></span>Вільний слот</span>
+            <span class="agenda-legend-text--danger">Червоний у списку "Хто?" - людина зайнята в цей час (причина одразу в тексті)</span>
+            <span class="agenda-legend-hint">1 / 2 - черговість слотів</span>
+        </div>
 
         <div class="week-nav">
             <button type="button" class="outline-btn" id="prevWeekBtn">‹ Тиждень</button>

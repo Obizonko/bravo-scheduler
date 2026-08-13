@@ -855,6 +855,23 @@
     border: 1px dashed var(--border);
 }
 
+/* Сірий "не потрібен зараз" - той самий відтінок, що й wc-workload-overlay. */
+.agenda-legend-dot--overlay {
+    background: rgba(17, 17, 17, 0.16);
+    border: 1px solid var(--border);
+}
+
+/* Текстовий (не квадратик) пункт легенди - для кольору тексту (напр. "недоступно"
+   червоним) чи для короткої підказки-дії без свого відповідника-кольору. */
+.agenda-legend-text--danger {
+    color: var(--danger);
+    font-weight: 600;
+}
+
+.agenda-legend-hint {
+    color: var(--text-secondary);
+}
+
 .wc-assign-select {
     width: 100%;
     font-family: inherit;

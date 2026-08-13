@@ -176,12 +176,13 @@ class MasterPlanBoard {
         const badge = activity.workload ? `<span class="mp-badge">${WORKLOAD_BADGE_LABEL[activity.workload] || activity.workload}</span>` : '';
         const dailyMark = activity.is_daily ? ' 🔁' : '';
         const resizeHandle = Session.isLead()
-            ? `<span class="wc-resize-handle" data-activity-id="${activity.record_id}" data-occurrence-date="${occurrenceDate}"></span>`
+            ? `<span class="wc-resize-handle" data-activity-id="${activity.record_id}" data-occurrence-date="${occurrenceDate}" title="Потягніть - змінити тривалість"></span>`
             : '';
+        const dragTitle = Session.isLead() ? ' title="Клік - редагувати, перетягніть - перенести на інший час"' : '';
 
         return `
             <div class="wc-bar mp-bar" style="top:${top}px; height:${height}px;"
-                 data-activity-id="${activity.record_id}" data-occurrence-date="${occurrenceDate}">
+                 data-activity-id="${activity.record_id}" data-occurrence-date="${occurrenceDate}"${dragTitle}>
                 <span class="wc-bar-time">${activity.time_start}–${activity.time_end}${dailyMark}</span>
                 <span class="wc-bar-name">${activity.name_of_activity}</span>
                 ${badge}

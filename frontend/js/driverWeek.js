@@ -118,7 +118,7 @@ class DriverWeek {
             .map((iv) => `
                 <div class="dw-chip">
                     <span>${iv.time_start}–${iv.time_end}</span>
-                    ${Session.isLead() ? `<button type="button" class="dw-chip-remove" data-record-id="${iv.record_id}">×</button>` : ''}
+                    ${Session.isLead() ? `<button type="button" class="dw-chip-remove" data-record-id="${iv.record_id}" title="Прибрати виїзд">×</button>` : ''}
                 </div>
             `)
             .join('');
@@ -137,7 +137,7 @@ class DriverWeek {
                     <button type="submit" class="dw-add-confirm">✓</button>
                 </form>
             `
-            : `<button type="button" class="dw-add-btn" data-cell-key="${cellKey}">+</button>`;
+            : `<button type="button" class="dw-add-btn" data-cell-key="${cellKey}" title="Додати виїзд для цієї людини на цей день">+</button>`;
 
         return `<div class="dw-cell">${chipsHtml}${formHtml}</div>`;
     }

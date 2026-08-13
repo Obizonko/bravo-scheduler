@@ -275,7 +275,7 @@ class WeekCalendar {
                 ? `<button type="button" class="wc-bar-remove" data-record-id="${assignee.record_id}" title="Зняти">×</button>`
                 : '';
             const resizeHandle = Session.isLead()
-                ? `<span class="wc-resize-handle" data-shift-id="${shift.shift_id}"></span>` : '';
+                ? `<span class="wc-resize-handle" data-shift-id="${shift.shift_id}" title="Потягніть - змінити тривалість"></span>` : '';
             // Лід бачить select замість статичного імені - вибір іншої людини одразу
             // замінює призначення (зняти стару + призначити нову), без окремих кроків.
             const nameOrReplace = Session.isLead()
@@ -283,8 +283,9 @@ class WeekCalendar {
                        ${this.peopleOptionsHtml(assignee.user_id, shift.shift_id)}
                    </select>`
                 : `<span class="wc-bar-name">${assignee.name}${driverMark}</span>`;
+            const dragTitle = Session.isLead() ? ' title="Потягніть - перенести на інший час"' : '';
             return `
-                <div class="wc-bar wc-bar-filled" style="top:${top}px; height:${height}px;" data-shift-id="${shift.shift_id}">
+                <div class="wc-bar wc-bar-filled" style="top:${top}px; height:${height}px;" data-shift-id="${shift.shift_id}"${dragTitle}>
                     <span class="wc-bar-time">${shift.time_start}–${shift.time_end}</span>
                     ${nameOrReplace}
                     ${removeBtn}${resizeHandle}
@@ -297,9 +298,9 @@ class WeekCalendar {
         }
 
         const deleteBtn = `<button type="button" class="wc-bar-delete" data-shift-id="${shift.shift_id}" title="Видалити">×</button>`;
-        const resizeHandle = `<span class="wc-resize-handle" data-shift-id="${shift.shift_id}"></span>`;
+        const resizeHandle = `<span class="wc-resize-handle" data-shift-id="${shift.shift_id}" title="Потягніть - змінити тривалість"></span>`;
         return `
-            <div class="wc-bar wc-bar-empty" style="top:${top}px; height:${height}px;" data-shift-id="${shift.shift_id}">
+            <div class="wc-bar wc-bar-empty" style="top:${top}px; height:${height}px;" data-shift-id="${shift.shift_id}" title="Потягніть - перенести на інший час">
                 <span class="wc-bar-time">${shift.time_start}–${shift.time_end}</span>
                 <select class="wc-assign-select" data-shift-id="${shift.shift_id}">
                     <option value="">+ Хто?</option>

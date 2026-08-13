@@ -64,10 +64,18 @@
         <header class="topbar">
             <div>
                 <h1>Склад</h1>
-                <p>Тижневий календар: клікніть чи потягніть у слоті (1/2/3), щоб створити зміну. Сірим - колонки, де людина не потрібна за рівнем навантаження з <a href="masterplan.html">майстер-плану</a>, але призначити туди все одно можна.</p>
+                <p>Тижневий календар: клікніть чи потягніть у слоті (1/2/3), щоб створити зміну. Готову подію можна перетягнути (змінити час) або потягнути за нижній край (розтягнути). Сірим - колонки, де людина не потрібна за рівнем навантаження з <a href="masterplan.html">майстер-плану</a>, але призначити туди все одно можна.</p>
             </div>
             <div id="authBadge"></div>
         </header>
+
+        <div class="agenda-legend">
+            <span><span class="agenda-legend-dot agenda-legend-dot--duty"></span>Призначена людина</span>
+            <span><span class="agenda-legend-dot agenda-legend-dot--free"></span>Вільний слот</span>
+            <span><span class="agenda-legend-dot agenda-legend-dot--overlay"></span>Не потрібен зараз (можна призначити)</span>
+            <span class="agenda-legend-text--danger">Червоний у списку "Хто?" - людина зайнята в цей час (причина одразу в тексті)</span>
+            <span class="agenda-legend-hint">1 / 2 / 3 - черговість слотів</span>
+        </div>
 
         <div class="week-nav">
             <button type="button" class="outline-btn" id="prevWeekBtn">‹ Тиждень</button>
