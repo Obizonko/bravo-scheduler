@@ -1,6 +1,7 @@
 'use strict';
 
 const { checkOverlap } = require('./overlap');
+const { checkActivityConflict } = require('./activityConflict');
 const { checkCapacity, shiftShortfallFinding } = require('./capacity');
 const { checkDriver } = require('./driver');
 const { checkBuffers } = require('./buffers');
@@ -34,6 +35,7 @@ function evaluate(context, candidate) {
 
   const all = [
     ...checkOverlap(context, candidate),
+    ...checkActivityConflict(context, candidate),
     ...checkCapacity(context, candidate),
     ...checkDriver(context, candidate),
     ...checkBuffers(context, candidate),

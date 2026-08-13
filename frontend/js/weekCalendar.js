@@ -29,6 +29,9 @@ class WeekCalendar {
         this.monday = getMonday(todayDateStr());
         this.board = null;
         this.masterPlanActivities = [];
+        // shift_id -> Map<user_id, {available, reason}> - хто зайнятий активністю/іншою
+        // зміною саме в цей проміжок, для підсвічування в select "Хто?"/заміни.
+        this.availabilityByShiftId = new Map();
         this.dragState = null;
         this._scrolledOnce = false;
 
@@ -68,6 +71,21 @@ class WeekCalendar {
             const [board, activities] = await Promise.all(requests);
             this.board = board;
             if (this.showWorkloadOverlay) this.masterPlanActivities = activities;
+
+            // Доступність людей на кожну зміну - лише для лідів (тільки вони бачать
+            // select "Хто?"/заміни; звичайний перегляд цих даних не потребує).
+            if (Session.isLead()) {
+                const allShifts = board.days.flatMap((day) => day.shifts);
+                const entries = await Promise.all(
+                    allShifts.map((shift) =>
+                        Api.get(`/shifts/${shift.shift_id}/availability`)
+                            .then((people) => [shift.shift_id, new Map(people.map((p) => [p.user_id, p]))])
+                            .catch(() => [shift.shift_id, new Map()])
+                    )
+                );
+                this.availabilityByShiftId = new Map(entries);
+            }
+
             this.render();
         } catch (err) {
             if (isFirstLoad) this.container.innerHTML = '';
@@ -261,8 +279,8 @@ class WeekCalendar {
             // Лід бачить select замість статичного імені - вибір іншої людини одразу
             // замінює призначення (зняти стару + призначити нову), без окремих кроків.
             const nameOrReplace = Session.isLead()
-                ? `<select class="wc-replace-select" data-shift-id="${shift.shift_id}" data-record-id="${assignee.record_id}">
-                       ${this.peopleOptionsHtml(assignee.user_id)}
+                ? `<select class="wc-replace-select" data-shift-id="${shift.shift_id}" data-record-id="${assignee.record_id}" data-current-user-id="${assignee.user_id}">
+                       ${this.peopleOptionsHtml(assignee.user_id, shift.shift_id)}
                    </select>`
                 : `<span class="wc-bar-name">${assignee.name}${driverMark}</span>`;
             return `
@@ -285,17 +303,31 @@ class WeekCalendar {
                 <span class="wc-bar-time">${shift.time_start}–${shift.time_end}</span>
                 <select class="wc-assign-select" data-shift-id="${shift.shift_id}">
                     <option value="">+ Хто?</option>
-                    ${this.peopleOptionsHtml()}
+                    ${this.peopleOptionsHtml(undefined, shift.shift_id)}
                 </select>
                 ${deleteBtn}${resizeHandle}
             </div>
         `;
     }
 
-    /** selectedUserId заданий - позначає поточного призначеного як обраний (для select-заміни). */
-    peopleOptionsHtml(selectedUserId) {
+    /**
+     * selectedUserId заданий - позначає поточного призначеного як обраний (для
+     * select-заміни). shiftId - якщо задано, підсвічує червоним і додає причину
+     * для людей, кого зараз НЕ МОЖНА призначити на цю зміну (вже на активності
+     * чи іншому чергуванні в цей час, availabilityByShiftId - з load()).
+     */
+    peopleOptionsHtml(selectedUserId, shiftId) {
+        const availability = shiftId ? this.availabilityByShiftId.get(shiftId) : null;
         return this.board.people
-            .map((p) => `<option value="${p.user_id}" ${p.user_id === selectedUserId ? 'selected' : ''}>${p.name}${p.is_driver ? ' (водій)' : ''}</option>`)
+            .map((p) => {
+                const info = availability ? availability.get(p.user_id) : null;
+                const unavailable = info && info.available === false;
+                const style = unavailable ? ' style="color:#c0392b;"' : '';
+                const label = unavailable
+                    ? `${p.name}${p.is_driver ? ' (водій)' : ''} — недоступн(а): ${info.reason}`
+                    : `${p.name}${p.is_driver ? ' (водій)' : ''}`;
+                return `<option value="${p.user_id}" ${p.user_id === selectedUserId ? 'selected' : ''}${style}>${label}</option>`;
+            })
             .join('');
     }
 
@@ -421,20 +453,13 @@ class WeekCalendar {
         if (!userId) return;
 
         try {
-            const check = await Api.post('/schedule/check', { shift_id: shiftId, user_id: userId });
-            if (!check.ok) {
-                const proceed = window.confirm(
-                    'Знайдено жорсткі порушення правил:\n\n' +
-                    check.violations.map((v) => '- ' + v.message).join('\n') +
-                    '\n\nВсе одно призначити?'
-                );
-                if (!proceed) { await this.load(); return; }
-            }
-            await Api.post('/schedule', { shift_id: shiftId, user_id: userId });
-            if (check.warnings.length > 0) {
-                showBanner('Призначено. Увага: ' + check.warnings.map((w) => w.message).join('; '), 'error');
-            } else {
-                showBanner('Людину призначено', 'success');
+            const result = await assignPersonToShift(shiftId, userId);
+            if (result.success) {
+                if (result.warnings.length > 0) {
+                    showBanner('Призначено. Увага: ' + result.warnings.map((w) => w.message).join('; '), 'error');
+                } else {
+                    showBanner('Людину призначено', 'success');
+                }
             }
         } catch (err) {
             showBanner(err.message || 'Не вдалося призначити людину');
@@ -514,8 +539,9 @@ class WeekCalendar {
         const select = e.currentTarget;
         const shiftId = select.dataset.shiftId;
         const oldRecordId = select.dataset.recordId;
+        const oldUserId = select.dataset.currentUserId;
         const newUserId = select.value;
-        if (!newUserId) return;
+        if (!newUserId || newUserId === oldUserId) return;
 
         try {
             // Спершу знімаємо стару людину, і лише ПОТІМ перевіряємо нову - інакше
@@ -524,20 +550,18 @@ class WeekCalendar {
             // ЗАВЖДИ повертав би SHIFT_CAPACITY_EXCEEDED навіть для звичайної заміни.
             await Api.del(`/schedule/${oldRecordId}`);
 
-            const check = await Api.post('/schedule/check', { shift_id: shiftId, user_id: newUserId });
-            if (!check.ok) {
-                const proceed = window.confirm(
-                    'Знайдено жорсткі порушення правил:\n\n' +
-                    check.violations.map((v) => '- ' + v.message).join('\n') +
-                    '\n\nВсе одно замінити?'
-                );
-                if (!proceed) { await this.load(); return; }
-            }
-            await Api.post('/schedule', { shift_id: shiftId, user_id: newUserId });
-            if (check.warnings.length > 0) {
-                showBanner('Людину замінено. Увага: ' + check.warnings.map((w) => w.message).join('; '), 'error');
+            const result = await assignPersonToShift(shiftId, newUserId);
+            if (result.success) {
+                if (result.warnings.length > 0) {
+                    showBanner('Людину замінено. Увага: ' + result.warnings.map((w) => w.message).join('; '), 'error');
+                } else {
+                    showBanner('Людину замінено', 'success');
+                }
             } else {
-                showBanner('Людину замінено', 'success');
+                // Нову людину не вдалось призначити (жорсткий блок або відмова від
+                // підтвердження) - повертаємо стару назад, інакше слот лишився б
+                // порожнім, хоча заміна фактично не відбулась.
+                await Api.post('/schedule', { shift_id: shiftId, user_id: oldUserId });
             }
         } catch (err) {
             showBanner(err.message || 'Не вдалося замінити людину');

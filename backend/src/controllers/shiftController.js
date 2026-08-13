@@ -31,6 +31,12 @@ class ShiftController {
     res.status(200).json({ success: true, data: shift });
   }
 
+  /** Доступність кожної людини для цієї зміни (для підсвічування в select "Хто?"). */
+  async getAvailability(req, res) {
+    const availability = await rulesEngineService.getShiftAvailability(req.params.id);
+    res.status(200).json({ success: true, data: availability });
+  }
+
   async create(req, res) {
     const shift = await shiftService.create(req.body);
     await recordAudit(req, {

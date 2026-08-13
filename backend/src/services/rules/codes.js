@@ -23,6 +23,14 @@ const REGISTRY = {
     rule: 'overlap',
     message: () => 'Людину вже призначено на цю саму зміну',
   },
+  PERSON_ON_ACTIVITY: {
+    severity: SEVERITY.VIOLATION,
+    rule: 'overlap',
+    message: (c) => {
+      const other = c.conflicting[0];
+      return `Людина вже задіяна в активності "${other.name_of_activity}" (${other.time_start}–${other.time_end}) у цей самий час`;
+    },
+  },
   SHIFT_CAPACITY_EXCEEDED: {
     severity: SEVERITY.VIOLATION,
     rule: 'capacity',

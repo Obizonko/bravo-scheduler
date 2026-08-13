@@ -140,6 +140,46 @@ function hideBanner() {
   if (el) el.style.display = 'none';
 }
 
+// Коди порушень, які НІКОЛИ не продавлюються навіть з force:true - людина
+// фізично не може бути в двох місцях одночасно. Мусить збігатись зі списком
+// hasUnoverridable у backend/src/services/scheduleService.js.
+const UNOVERRIDABLE_VIOLATION_CODES = ['PERSON_DOUBLE_BOOKED', 'PERSON_ON_ACTIVITY'];
+
+/**
+ * Єдина точка призначення людини на зміну - dry-run check, і залежно від
+ * результату або звичайний POST, або (для порушень, які МОЖНА продавити,
+ * напр. перевищення квоти) підтвердження й POST з force:true. Порушення зі
+ * списку UNOVERRIDABLE_VIOLATION_CODES не пропонує продавлювати взагалі -
+ * бекенд однаково відхилить (RULES_ENFORCEMENT=block), тож питати "все одно?"
+ * було б оманливим.
+ *
+ * @returns {Promise<{success:boolean, warnings?:object[]}>}
+ */
+async function assignPersonToShift(shiftId, userId) {
+  const check = await Api.post('/schedule/check', { shift_id: shiftId, user_id: userId });
+
+  if (check.ok) {
+    await Api.post('/schedule', { shift_id: shiftId, user_id: userId });
+    return { success: true, warnings: check.warnings };
+  }
+
+  const hasUnoverridable = check.violations.some((v) => UNOVERRIDABLE_VIOLATION_CODES.includes(v.code));
+  if (hasUnoverridable) {
+    showBanner('Не можна призначити: ' + check.violations.map((v) => v.message).join('; '), 'error');
+    return { success: false };
+  }
+
+  const proceed = window.confirm(
+    'Знайдено жорсткі порушення правил:\n\n' +
+    check.violations.map((v) => '- ' + v.message).join('\n') +
+    '\n\nВсе одно призначити?'
+  );
+  if (!proceed) return { success: false };
+
+  await Api.post('/schedule', { shift_id: shiftId, user_id: userId, force: true });
+  return { success: true, warnings: check.warnings };
+}
+
 /** Гамбургер-кнопка + затемнення для сайдбару на мобільній ширині (<=576px,
  * див. style.css) - раніше сайдбар на цій ширині просто зникав без заміни,
  * і навігація між сторінками ставала неможливою. Викликається одноразово

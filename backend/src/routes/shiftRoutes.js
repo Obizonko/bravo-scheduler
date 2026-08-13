@@ -13,6 +13,7 @@ router.get('/board', validate.query(boardQuerySchema), shiftController.getBoard)
 router.get('/week-board', validate.query(weekBoardQuerySchema), shiftController.getWeekBoard);
 router.get('/', validate.query(shiftListQuerySchema), shiftController.getAll);
 router.get('/:id', shiftController.getById);
+router.get('/:id/availability', shiftController.getAvailability);
 router.post('/', requireLead, validate(createShiftSchema), shiftController.create);
 router.put('/:id', requireLead, validate(updateShiftSchema), shiftController.update);
 router.delete('/:id', requireLead, shiftController.remove);

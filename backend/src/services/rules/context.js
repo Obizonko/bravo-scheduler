@@ -7,6 +7,7 @@ const shiftRepository = require('../../repositories/shiftRepository');
 const scheduleRepository = require('../../repositories/scheduleRepository');
 const userRepository = require('../../repositories/userRepository');
 const masterPlanRepository = require('../../repositories/masterPlanRepository');
+const activityAssignmentRepository = require('../../repositories/activityAssignmentRepository');
 
 /**
  * @typedef {Object} DayContext
@@ -15,10 +16,12 @@ const masterPlanRepository = require('../../repositories/masterPlanRepository');
  * @property {object[]} shifts - зміни за windowDates (сирі, з репозиторію)
  * @property {object[]} schedules - записи графіка для цих змін
  * @property {object[]} activities - усі активності Master Plan, передані на вхід
+ * @property {object[]} activityAssignments - усі записи участі (хто на якій активності), передані на вхід
  * @property {Map<string,object>} usersById
  * @property {Map<string,object>} shiftsById
  * @property {Map<string,object[]>} schedulesByShiftId
  * @property {Map<string,object[]>} schedulesByUserId
+ * @property {Map<string,object[]>} activityAssignmentsByUserId
  * @property {Map<string,{start:number,end:number,crossesMidnight:boolean,date:string}|null>} intervalByShiftId
  * @property {{activity:object, interval:object}[]} activityIntervals - активності, матеріалізовані на конкретні дати windowDates (is_daily - на кожну дату; дата-прив'язані - лише якщо їхня date входить у windowDates)
  * @property {object[]} dataWarnings - DATA_TIME_UNPARSEABLE / DATA_MASTERPLAN_NO_DATE, зібрані під час індексації
@@ -31,11 +34,11 @@ const masterPlanRepository = require('../../repositories/masterPlanRepository');
  * (test/fixtures/context.js) - обидва мають працювати з тотожною формою даних,
  * інакше тести рушія правил перевіряють не те, що реально виконується в проді.
  *
- * @param {{date:string, shifts?:object[], schedules?:object[], users?:object[], activities?:object[]}} raw
+ * @param {{date:string, shifts?:object[], schedules?:object[], users?:object[], activities?:object[], activityAssignments?:object[]}} raw
  * @returns {DayContext}
  */
 function indexContext(raw) {
-  const { date, shifts = [], schedules = [], users = [], activities = [] } = raw;
+  const { date, shifts = [], schedules = [], users = [], activities = [], activityAssignments = [] } = raw;
   const dataWarnings = [];
 
   const windowDates = [time.addDays(date, -1), date, time.addDays(date, 1)].filter(
@@ -93,16 +96,24 @@ function indexContext(raw) {
     }
   }
 
+  const activityAssignmentsByUserId = new Map();
+  for (const record of activityAssignments) {
+    if (!activityAssignmentsByUserId.has(record.user_id)) activityAssignmentsByUserId.set(record.user_id, []);
+    activityAssignmentsByUserId.get(record.user_id).push(record);
+  }
+
   return {
     date,
     windowDates,
     shifts,
     schedules,
     activities,
+    activityAssignments,
     usersById,
     shiftsById,
     schedulesByShiftId,
     schedulesByUserId,
+    activityAssignmentsByUserId,
     intervalByShiftId,
     activityIntervals,
     dataWarnings,
@@ -110,10 +121,11 @@ function indexContext(raw) {
 }
 
 /**
- * Продакшен-завантажувач DayContext. Рівно 4 запити незалежно від обсягу даних -
+ * Продакшен-завантажувач DayContext. Рівно 5 запитів незалежно від обсягу даних -
  * саме це і захищає від N+1: одні зміни за вікно ±1 день, одні записи графіка для
- * цих змін, усі користувачі, усі активності Master Plan. Побудова Map-індексів
- * (indexContext) далі повністю синхронна й pure.
+ * цих змін, усі користувачі, усі активності Master Plan, усі записи участі в
+ * активностях (для перевірки конфлікту активність↔чергування, rules/activityConflict.js).
+ * Побудова Map-індексів (indexContext) далі повністю синхронна й pure.
  *
  * @param {string} date - 'YYYY-MM-DD', якір контексту
  * @returns {Promise<DayContext>}
@@ -129,8 +141,9 @@ async function buildDayContext(date) {
     shiftIds.length > 0 ? await scheduleRepository.findAll({ shift_id: inList(shiftIds) }) : [];
   const users = await userRepository.findAll();
   const activities = await masterPlanRepository.findAll();
+  const activityAssignments = await activityAssignmentRepository.findAll();
 
-  return indexContext({ date, shifts, schedules, users, activities });
+  return indexContext({ date, shifts, schedules, users, activities, activityAssignments });
 }
 
 module.exports = { indexContext, buildDayContext };

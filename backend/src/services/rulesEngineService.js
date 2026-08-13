@@ -45,6 +45,38 @@ async function checkAssignment({ shift_id: shiftId, user_id: userId, status }) {
   return rulesEngine.evaluate(context, { shift_id: shiftId, user_id: userId, status });
 }
 
+// Ті самі коди, що НІКОЛИ не продавлюються (scheduleService.js hasUnoverridable) -
+// саме ЦІ конфлікти й підсвічуємо як "не можна призначити зараз", а не будь-яке
+// порушення (капасіті тощо тут не при чому - той рахується на рівні всього слота,
+// не конкретної людини).
+const TIME_CONFLICT_CODES = ['PERSON_DOUBLE_BOOKED', 'PERSON_ON_ACTIVITY'];
+
+/**
+ * Доступність КОЖНОЇ людини для конкретної зміни - один DayContext на весь
+ * список (ті самі 5 запитів buildDayContext), а не N окремих /schedule/check.
+ * Використовується фронтендом, щоб підсвітити в select "Хто?" тих, кого зараз
+ * не можна призначити, і одразу показати причину (яка активність/зміна в них
+ * у цей час).
+ */
+async function getShiftAvailability(shiftId) {
+  const shift = await shiftRepository.findById(shiftId);
+  if (!shift) throw new NotFoundError('Зміну, вказану в shift_id,');
+
+  const context = await buildDayContext(shift.date);
+
+  return [...context.usersById.values()].map((user) => {
+    const result = rulesEngine.evaluate(context, { shift_id: shiftId, user_id: user.user_id });
+    const conflict = result.violations.find((v) => TIME_CONFLICT_CODES.includes(v.code));
+    return {
+      user_id: user.user_id,
+      name: user.name,
+      is_driver: user.is_driver,
+      available: !conflict,
+      reason: conflict ? conflict.message : null,
+    };
+  });
+}
+
 /**
  * getDailyTimelineForUser зі спеки: розклад однієї людини на конкретну дату,
  * відсортований за часом початку, збагачений співчерговими й активностями
@@ -557,4 +589,5 @@ module.exports = {
   getWeekBoard,
   getPersonCalendar,
   getConflictsReport,
+  getShiftAvailability,
 };

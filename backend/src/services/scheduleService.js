@@ -42,7 +42,12 @@ class ScheduleService {
   async assign(data, { force = false } = {}) {
     const result = await rulesEngineService.checkAssignment(data);
 
-    const hasUnoverridable = result.violations.some((v) => v.code === 'PERSON_DOUBLE_BOOKED');
+    // PERSON_DOUBLE_BOOKED і PERSON_ON_ACTIVITY - фізично неможливі стани (людина
+    // не може бути в двох місцях одночасно), тому force їх не продавлює НІКОЛИ,
+    // на відміну від капасіті/закритої зміни, де форсування іноді має сенс.
+    const hasUnoverridable = result.violations.some(
+      (v) => v.code === 'PERSON_DOUBLE_BOOKED' || v.code === 'PERSON_ON_ACTIVITY'
+    );
     const blocking = rulesConfig.enforcement === 'block' && (!force || hasUnoverridable);
 
     if (blocking && !result.ok) {

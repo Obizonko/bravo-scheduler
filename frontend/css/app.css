@@ -797,6 +797,64 @@
     color: var(--danger);
 }
 
+/* Міні "+" на пунктирному барі активності в календарі людини (personModal.js) -
+   той самий кут, що й wc-bar-remove/wc-bar-delete, лише додає замість знімає. */
+.agenda-toggle-mini {
+    position: absolute;
+    top: 1px;
+    right: 2px;
+    background: none;
+    border: none;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    color: inherit;
+}
+
+.agenda-toggle-mini:hover {
+    color: var(--primary-hover);
+}
+
+/* Легенда над єдиним календарем людини - без неї незрозуміло, чим жовтий бар
+   відрізняється від синього/пунктирного. */
+.agenda-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.agenda-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.agenda-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    display: inline-block;
+}
+
+.agenda-legend-dot--duty {
+    background: var(--primary-light);
+    border: 1px solid var(--primary-hover);
+}
+
+.agenda-legend-dot--activity {
+    background: #E0EDFF;
+    border: 1px solid #93B4E8;
+}
+
+.agenda-legend-dot--free {
+    background: var(--background);
+    border: 1px dashed var(--border);
+}
+
 .wc-assign-select {
     width: 100%;
     font-family: inherit;

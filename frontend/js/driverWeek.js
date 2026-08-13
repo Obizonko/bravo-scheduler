@@ -161,30 +161,30 @@ class DriverWeek {
         }
 
         this.openCellKey = null;
+        let shift = null;
         try {
-            const shift = await Api.post('/shifts', {
+            shift = await Api.post('/shifts', {
                 date, time_start: timeStart, time_end: timeEnd, service_type: TRIP_SERVICE_TYPE, max_people: 1,
             });
 
-            const check = await Api.post('/schedule/check', { shift_id: shift.shift_id, user_id: userId });
-            if (!check.ok) {
-                const proceed = window.confirm(
-                    'Знайдено жорсткі порушення правил:\n\n' +
-                    check.violations.map((v) => '- ' + v.message).join('\n') +
-                    '\n\nВсе одно позначити зайнятим?'
-                );
-                if (!proceed) { await this.load(); return; }
-            }
-            await Api.post('/schedule', { shift_id: shift.shift_id, user_id: userId });
-            // Попередження - ПІСЛЯ успішного запису, одним банером (інакше миттєво
-            // перекривається наступним "додано").
-            if (check.warnings.length > 0) {
-                showBanner('Додано. Увага: ' + check.warnings.map((w) => w.message).join('; '), 'error');
+            const result = await assignPersonToShift(shift.shift_id, userId);
+            if (result.success) {
+                // Попередження - ПІСЛЯ успішного запису, одним банером (інакше миттєво
+                // перекривається наступним "додано").
+                if (result.warnings.length > 0) {
+                    showBanner('Додано. Увага: ' + result.warnings.map((w) => w.message).join('; '), 'error');
+                } else {
+                    showBanner('Інтервал зайнятості додано', 'success');
+                }
             } else {
-                showBanner('Інтервал зайнятості додано', 'success');
+                // Людину не вдалось призначити - прибираємо щойно створену порожню
+                // зміну, інакше вона осиротіє (Водії показують лише ПРИЗНАЧЕНІ
+                // інтервали, тож порожня зміна стала б невидимим сміттям у базі).
+                await Api.del(`/shifts/${shift.shift_id}`);
             }
         } catch (err) {
             showBanner(err.message || 'Не вдалося додати інтервал');
+            if (shift) await Api.del(`/shifts/${shift.shift_id}`).catch(() => {});
         }
         await this.load();
     }

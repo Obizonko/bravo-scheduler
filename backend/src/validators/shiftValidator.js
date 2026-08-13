@@ -62,12 +62,18 @@ const createShiftSchema = Joi.object({
 // Раніше цей апдейт-варіант губив крос-перевірку max_people >= min_people, яка була лише
 // в create-схемі - через PUT /shifts/:id можна було виставити max < min. Тепер обидві
 // крос-перевірки застосовуються однаково і на create, і на update.
+//
+// service_type НАВМИСНО відсутній тут (є лише в create-схемі) - тип зміни
+// незмінний після створення. Жоден фронтенд-потік і так ніколи його не міняв,
+// але сама МОЖЛИВІСТЬ через API конвертувати будь-яку зміну на "Поїздка" (чи
+// навпаки) в обхід сторінки "Водії" - небажана: номери lane означають різне
+// для Складу(3)/ТЕЦ(2)/Поїздки (без фіксованих слотів), тож підміна типу під
+// наявним lane була б безглуздою.
 const updateShiftSchema = Joi.object({
   date: dateSchema,
   time_start: timeSchema,
   time_end: timeSchema,
   workload: Joi.string().allow('', null),
-  service_type: Joi.string().valid(...SERVICE_TYPES),
   min_people: peopleCountSchema,
   max_people: peopleCountSchema,
   lane: laneSchema,

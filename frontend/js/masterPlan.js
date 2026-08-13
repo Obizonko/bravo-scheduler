@@ -9,18 +9,18 @@
  * активності відкриває редагування (назва, рівень навантаження, щодня).
  */
 
+// Лише ці 3 рівні реально впливають на щось у застосунку (WORKLOAD_HEADCOUNT
+// у weekCalendar.js - підсвічування колонок Складу). "Всі задіяні"/"Нічний
+// час" ніде фактично не використовувались для розрахунку кількості людей,
+// тож прибрані як зайві - разом з порожнім "Не вказано" (тепер завжди явний
+// рівень, за замовчуванням середнє/2 людини).
 const WORKLOAD_OPTIONS = [
-    { value: '', label: 'Не вказано' },
     { value: 'quiet', label: 'Низьке (потрібна 1 людина)' },
     { value: 'normal', label: 'Середнє (потрібно 2 людини)' },
     { value: 'peak', label: 'Високе (потрібно 3 людини)' },
-    { value: 'all_hands', label: 'Всі задіяні' },
-    { value: 'off_hours', label: 'Нічний час' },
 ];
 
-const WORKLOAD_BADGE_LABEL = {
-    quiet: 'Низьке', normal: 'Середнє', peak: 'Високе', all_hands: 'Всі задіяні', off_hours: 'Нічне',
-};
+const WORKLOAD_BADGE_LABEL = { quiet: 'Низьке', normal: 'Середнє', peak: 'Високе' };
 
 class MasterPlanBoard {
     constructor({ container }) {
@@ -279,6 +279,26 @@ class MasterPlanBoard {
         }
     }
 
+    /**
+     * За замовчуванням середнє/normal (2 людини). Але якщо створюваний проміжок
+     * перетинається з ІНШОЮ активністю того ж дня з явно нижчим/вищим рівнем -
+     * успадковуємо саме його (а не тихо повертаємось до normal), інакше два
+     * перетинні записи одного періоду показували б різні рівні без причини.
+     * Кілька перетинних не-normal активностей одразу - бере НАЙВИЩИЙ рівень,
+     * той самий принцип "максимум, не сума", що й у computeHeadcountSegments.
+     */
+    detectInheritedWorkload(date, startMin, endMin) {
+        const rank = { quiet: 1, normal: 2, peak: 3 };
+        const overlapping = this.activitiesForDate(date).filter((a) => {
+            const aStart = hmToMin(a.time_start);
+            const aEnd = visualEndMin(a);
+            return aStart < endMin && startMin < aEnd;
+        });
+        const nonNormal = overlapping.filter((a) => rank[a.workload] && a.workload !== 'normal');
+        if (nonNormal.length === 0) return 'normal';
+        return nonNormal.reduce((best, a) => (rank[a.workload] > rank[best] ? a.workload : best), nonNormal[0].workload);
+    }
+
     async createActivity(date, startMin, endMin) {
         try {
             await Api.post('/master-plan', {
@@ -286,7 +306,7 @@ class MasterPlanBoard {
                 date,
                 time_start: minToHm(startMin),
                 time_end: minToHm(endMin),
-                workload: 'normal',
+                workload: this.detectInheritedWorkload(date, startMin, endMin),
             });
             showBanner('Активність створено - відредагуйте назву', 'success');
         } catch (err) {

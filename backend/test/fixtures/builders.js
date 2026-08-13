@@ -59,4 +59,14 @@ function assignment(overrides = {}) {
   };
 }
 
-module.exports = { user, shift, activity, assignment, nextId, resetIds };
+/** Участь людини в активності Master Plan (activity_assignments), не плутати з assignment() (Schedule). */
+function activityAssignment(overrides = {}) {
+  return {
+    assignment_id: overrides.assignment_id || nextId('actassign_'),
+    user_id: overrides.user_id,
+    master_plan_id: overrides.master_plan_id,
+    ...overrides,
+  };
+}
+
+module.exports = { user, shift, activity, assignment, activityAssignment, nextId, resetIds };
