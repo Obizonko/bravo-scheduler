@@ -1,0 +1,12 @@
+[Unit]
+Description=Резервна копія бази планувальника Bravo
+# Без Docker дамп неможливий - не намагаємось запускатись раніше за нього.
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/scheduler/deploy/backup.sh
+# Помилку видно в systemctl status і в journalctl -u scheduler-backup.
+StandardOutput=journal
+StandardError=journal
