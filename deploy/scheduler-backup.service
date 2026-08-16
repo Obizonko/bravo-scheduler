@@ -1,12 +1,14 @@
 [Unit]
-Description=Резервна копія бази планувальника Bravo
-# Без Docker дамп неможливий - не намагаємось запускатись раніше за нього.
+Description=Сторож бази планувальника Bravo
+# Без Docker ані дамп, ані відновлення неможливі - не стартуємо раніше за нього.
 After=docker.service
 Requires=docker.service
 
 [Service]
 Type=oneshot
-ExecStart=/opt/scheduler/deploy/backup.sh
+# watchdog.sh сам вирішує: дані на місці -> знімає копію, база порожня ->
+# відновлює з останньої непорожньої. Копія з порожньої бази не знімається ніколи.
+ExecStart=/opt/scheduler/deploy/watchdog.sh
 # Помилку видно в systemctl status і в journalctl -u scheduler-backup.
 StandardOutput=journal
 StandardError=journal

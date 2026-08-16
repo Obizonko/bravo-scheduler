@@ -15,7 +15,14 @@ set -euo pipefail
 CONTAINER="${CONTAINER:-scheduler-mongo-1}"
 DB="${DB:-hr_scheduler}"
 DEST="${DEST:-/var/backups/scheduler}"
-RETENTION="${RETENTION:-14}"
+# Знімки йдуть кожні 30 хв, тож 96 штук - це дві доби детальної історії.
+# Копія важить ~4 КБ, місця це не коштує.
+RETENTION="${RETENTION:-96}"
+# Окремо тримаємо по одній копії на добу в daily/ - вони НЕ витісняються
+# частими знімками. Без цього дві доби були б усією доступною глибиною, і
+# пошкодження, помічене на третій день, не було б чим лікувати.
+DAILY_DIR="$DEST/daily"
+DAILY_RETENTION="${DAILY_RETENTION:-30}"
 # Порожній gzip-архів - близько 20 байт. Усе, менше за це, означає, що дамп
 # насправді не відбувся, навіть якщо mongodump повернув нуль.
 MIN_BYTES="${MIN_BYTES:-200}"
@@ -47,13 +54,25 @@ fi
 mv "$TMP" "$OUT"
 log "створено $OUT ($SIZE байт)"
 
-# Ротація - тільки після успішного створення нової копії.
-mapfile -t OLD < <(ls -1t "$DEST/${DB}-"*.gz 2>/dev/null | tail -n +$((RETENTION + 1)))
-if [ ${#OLD[@]} -gt 0 ]; then
-  for f in "${OLD[@]}"; do
-    rm -f "$f"
-    log "прибрано стару копію $(basename "$f")"
-  done
+# Перша копія за добу дублюється в daily/ - решта дня туди не потрапляє.
+mkdir -p "$DAILY_DIR"
+DAILY="$DAILY_DIR/${DB}-$(date +%Y%m%d).gz"
+if [ ! -f "$DAILY" ]; then
+  cp "$OUT" "$DAILY"
+  log "перша копія за сьогодні продубльована у daily/"
 fi
 
-log "готово. усього копій: $(ls -1 "$DEST/${DB}-"*.gz 2>/dev/null | wc -l)"
+# Ротація - тільки після успішного створення нової копії.
+rotate() {
+  local dir="$1" keep="$2"
+  mapfile -t OLD < <(ls -1t "$dir/${DB}-"*.gz 2>/dev/null | tail -n +$((keep + 1)))
+  for f in "${OLD[@]:-}"; do
+    [ -n "$f" ] || continue
+    rm -f "$f"
+    log "прибрано $(basename "$f")"
+  done
+}
+rotate "$DEST" "$RETENTION"
+rotate "$DAILY_DIR" "$DAILY_RETENTION"
+
+log "готово. копій: $(ls -1 "$DEST/${DB}-"*.gz 2>/dev/null | wc -l) частих + $(ls -1 "$DAILY_DIR/${DB}-"*.gz 2>/dev/null | wc -l) добових"
