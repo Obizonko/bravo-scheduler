@@ -60,22 +60,17 @@ function eventBarHtml(event) {
         `;
     }
 
-    // kind === 'activity'
-    const cls = event.attending ? 'wc-bar mp-bar' : 'wc-bar wc-bar-empty';
-    // Колір застосовуємо лише для "бере участь" - "не бере участі" лишається
-    // пунктирним/приглушеним (стан важливіший за колір активності тут).
-    const colorStyle = event.attending ? activityColorStyle(event.activity.color) : '';
+    // kind === 'activity' - сюди потрапляють лише ті, на які людину призначено
+    // (renderCalendarTab фільтрує), тож варіанта "не бере участі" тут немає.
     const dailyMark = event.activity.is_daily ? ' 🔁' : '';
-    const toggleBtn = Session.isLead()
-        ? event.attending
-            ? `<button type="button" class="wc-bar-remove" data-assignment-id="${event.assignmentId}" title="Прибрати з активності">×</button>`
-            : `<button type="button" class="agenda-toggle-mini" data-activity-id="${event.activity.record_id}" title="Додати на активність">+</button>`
+    const removeBtn = Session.isLead()
+        ? `<button type="button" class="wc-bar-remove" data-assignment-id="${event.assignmentId}" title="Прибрати з активності">×</button>`
         : '';
     return `
-        <div class="${cls}" style="top:${top}px; height:${height}px; ${colorStyle}">
+        <div class="wc-bar mp-bar" style="top:${top}px; height:${height}px; ${activityColorStyle(event.activity.color)}">
             <span class="wc-bar-time">${event.time_start}–${event.time_end}${dailyMark}</span>
-            <span class="wc-bar-name">${event.label}${event.attending ? '' : ' (не бере участі)'}</span>
-            ${toggleBtn}
+            <span class="wc-bar-name">${event.label}</span>
+            ${removeBtn}
         </div>
     `;
 }
@@ -121,6 +116,13 @@ async function renderCalendarTab(bodyEl, userId) {
                 label: s.service_type,
             }));
             const activities = allActivities
+                // Лише ті активності, на які людину справді призначено. Раніше
+                // тут були ВСІ активності табору - чужі малювались пунктиром із
+                // позначкою "не бере участі", і календар людини переставав бути
+                // її календарем. Додавання людини на активність лишилось там,
+                // де для цього є контекст - вкладка "Люди" в модалці активності
+                // на сторінці Майстер-план.
+                .filter((a) => assignmentIdByActivity.has(a.record_id))
                 .filter((a) => a.is_daily || a.date === date)
                 .map((a) => ({
                     kind: 'activity',
@@ -172,7 +174,7 @@ async function renderCalendarTab(bodyEl, userId) {
             <div class="agenda-legend">
                 <span><span class="agenda-legend-dot agenda-legend-dot--duty"></span>Чергування</span>
                 <span><span class="agenda-legend-dot agenda-legend-dot--activity"></span>Активність (бере участь)</span>
-                <span><span class="agenda-legend-dot agenda-legend-dot--free"></span>Активність (не бере участі)</span>
+                <span class="agenda-legend-hint">Показано лише те, на що цю людину призначено</span>
             </div>
             <div class="wc-scroll" style="max-height: 50vh;">
                 <div class="wc-grid" style="grid-template-columns: 56px repeat(${dates.length * lanes}, minmax(var(--wc-col-w, 70px), 1fr));">
@@ -190,10 +192,7 @@ async function renderCalendarTab(bodyEl, userId) {
             btn.addEventListener('click', () => setCalendarView(userId, btn.dataset.view));
         });
         bodyEl.querySelectorAll('.wc-bar-remove').forEach((btn) => {
-            btn.addEventListener('click', () => onToggleActivity(userId, btn.dataset.assignmentId, null));
-        });
-        bodyEl.querySelectorAll('.agenda-toggle-mini').forEach((btn) => {
-            btn.addEventListener('click', () => onToggleActivity(userId, null, btn.dataset.activityId));
+            btn.addEventListener('click', () => onRemoveFromActivity(userId, btn.dataset.assignmentId));
         });
 
         const scrollEl = bodyEl.querySelector('.wc-scroll');
@@ -248,14 +247,14 @@ function setCalendarView(userId, view) {
     renderCalendarTab(document.getElementById('personModalBody'), userId);
 }
 
-/** assignmentId - прибрати участь; activityId - додати. Рівно один із двох заданий. */
-async function onToggleActivity(userId, assignmentId, activityId) {
+/**
+ * Прибрати людину з активності. Зворотної дії тут немає навмисно: у календарі
+ * людини видно лише її активності, тож "додати" не має до чого причепитись -
+ * для цього є вкладка "Люди" в модалці активності на Майстер-плані.
+ */
+async function onRemoveFromActivity(userId, assignmentId) {
     try {
-        if (assignmentId) {
-            await Api.del(`/activity-assignments/${assignmentId}`);
-        } else {
-            await Api.post('/activity-assignments', { user_id: userId, master_plan_id: activityId });
-        }
+        await Api.del(`/activity-assignments/${assignmentId}`);
         await renderCalendarTab(document.getElementById('personModalBody'), userId);
     } catch (err) {
         showBanner(err.message || 'Не вдалося оновити участь в активності');

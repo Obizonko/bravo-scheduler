@@ -422,6 +422,10 @@ async function getWeekBoard(dateFrom, dateTo, serviceType) {
       min_people: shift.min_people,
       max_people: shift.max_people,
       lane: shift.lane,
+      // Потрібні сторінці "Водії" (кілометраж і куди виїзд). Тижневий борд -
+      // єдине джерело даних для неї, тож поля мають доїхати саме тут.
+      distance_km: shift.distance_km,
+      note: shift.note,
       assignees,
     });
   }

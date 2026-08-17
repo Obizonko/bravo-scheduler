@@ -22,6 +22,12 @@ const peopleCountSchema = Joi.number().integer().min(0).allow(null);
 // Номер слот-колонки в тижневому календарі (0..2). null - без явного вибору колонки.
 const laneSchema = Joi.number().integer().min(0).max(2).allow(null);
 
+// Кілометраж виїзду. null/порожньо = не вказано (не те саме, що 0).
+// Порожній рядок з <input type="number"> приходить як '', тож приводимо його до null.
+const distanceSchema = Joi.number().min(0).max(100000).allow(null, '').empty('');
+// Вільна примітка: куди виїзд, що везти, з ким контакт.
+const noteSchema = Joi.string().trim().max(500).allow('', null);
+
 /** time_end === time_start заборонено (нульова/24-год тривалість неоднозначна). time_end < time_start - ОК, перехід через північ. */
 function noZeroLengthShift(value, helpers) {
   if (value.time_start && value.time_end && value.time_start === value.time_end) {
@@ -54,6 +60,8 @@ const createShiftSchema = Joi.object({
   min_people: peopleCountSchema,
   max_people: peopleCountSchema,
   lane: laneSchema,
+  distance_km: distanceSchema,
+  note: noteSchema,
 })
   .custom(noZeroLengthShift, 'time_start != time_end')
   .custom(maxNotBelowMin, 'max_people >= min_people')
@@ -77,6 +85,8 @@ const updateShiftSchema = Joi.object({
   min_people: peopleCountSchema,
   max_people: peopleCountSchema,
   lane: laneSchema,
+  distance_km: distanceSchema,
+  note: noteSchema,
 })
   .min(1)
   .custom(noZeroLengthShift, 'time_start != time_end')

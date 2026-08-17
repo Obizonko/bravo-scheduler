@@ -406,6 +406,20 @@ const DragTooltip = {
   },
 };
 
+/**
+ * Екранування тексту, що йде в HTML-рядок (і в текст, і в значення атрибута).
+ * Примітки до виїздів пише людина вільним текстом, тож лапка чи кутова дужка
+ * не мають ламати розмітку.
+ */
+function escapeHtml(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function hourLabelsHtml() {
   let html = '';
   for (let h = 0; h < 24; h += 1) {

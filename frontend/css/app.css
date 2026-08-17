@@ -1253,26 +1253,78 @@ body.wc-col-resizing * {
     gap: 4px;
 }
 
+/* Чіп виїзду: час і кілометраж у першому рядку, примітка - другим.
+   Колонка, а не рядок: примітка ("куди їде") буває довгою, і тиснути її в
+   один рядок з часом означало б або обрізати час, або розтягнути клітинку. */
 .dw-chip {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 4px;
+    flex-direction: column;
+    gap: 2px;
     background: var(--primary-light);
     color: #5b4400;
     border-radius: 6px;
-    padding: 3px 6px;
+    padding: 4px 6px;
     font-size: 11px;
+    position: relative;
 }
 
-.dw-chip-remove {
+.dw-chip-main {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    /* Місце під кнопки праворуч - вони позиціонуються абсолютно. */
+    padding-right: 34px;
+}
+
+.dw-chip-time {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.dw-chip-km {
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.08);
+    white-space: nowrap;
+}
+
+.dw-chip-note {
+    font-size: 10px;
+    opacity: 0.85;
+    /* Повний текст лишається в title - у чіпі тримаємо один рядок, інакше
+       довга примітка розсуває всю клітинку дня. */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 34px;
+}
+
+.dw-chip-actions {
+    position: absolute;
+    top: 3px;
+    right: 4px;
+    display: flex;
+    gap: 2px;
+}
+
+.dw-chip-remove,
+.dw-chip-edit {
     background: none;
     border: none;
     color: #5b4400;
     cursor: pointer;
     font-size: 12px;
     line-height: 1;
+    padding: 0 2px;
     flex-shrink: 0;
+    opacity: 0.65;
+    transition: var(--transition);
+}
+
+.dw-chip-remove:hover,
+.dw-chip-edit:hover {
+    opacity: 1;
 }
 
 .dw-add-btn {
@@ -1291,11 +1343,46 @@ body.wc-col-resizing * {
     gap: 3px;
 }
 
-.dw-add-form input[type="time"] {
+.dw-add-form input[type="time"],
+.dw-add-form input[type="number"],
+.dw-add-form input[type="text"] {
     font-size: 10px;
     padding: 3px;
     border: 1px solid var(--border);
     border-radius: 5px;
+    font-family: inherit;
+    min-width: 0;
+}
+
+/* Час "від-до" в один рядок - вони парні за змістом і разом вужчі за клітинку. */
+.dw-form-row {
+    display: flex;
+    gap: 3px;
+}
+
+.dw-form-row > * {
+    flex: 1;
+    min-width: 0;
+}
+
+.dw-edit-cancel {
+    font-size: 11px;
+    padding: 3px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text-secondary);
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+/* Форма редагування ширша за чіп - на час правки клітинка може підрости,
+   інакше в неї не влізають чотири поля. */
+.dw-edit-form {
+    background: var(--card);
+    border: 1px solid var(--primary);
+    border-radius: 6px;
+    padding: 4px;
 }
 
 .dw-add-confirm {
