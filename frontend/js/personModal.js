@@ -197,6 +197,7 @@ async function renderCalendarTab(bodyEl, userId) {
         });
 
         const scrollEl = bodyEl.querySelector('.wc-scroll');
+        initBoardInteractions(scrollEl);
         if (scrollEl) {
             if (savedScroll) {
                 scrollEl.scrollTop = savedScroll.top;

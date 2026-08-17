@@ -283,6 +283,7 @@ class WeekCalendar {
         });
 
         const scrollEl = this.container.querySelector('.wc-scroll');
+        initBoardInteractions(scrollEl);
         if (scrollEl) {
             if (savedScroll) {
                 scrollEl.scrollTop = savedScroll.top;

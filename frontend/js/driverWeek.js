@@ -99,6 +99,14 @@ class DriverWeek {
         this.container.querySelectorAll('.dw-chip-remove').forEach((btn) => {
             btn.addEventListener('click', (e) => this.onRemoveInterval(e));
         });
+
+        // Той самий панінг і розтягування, що й на годинних сітках, але по
+        // власній розмітці: тут прокручується сам грід, а рамка - шапка днів,
+        // кутик і колонка з іменами.
+        initBoardInteractions(this.container.querySelector('.driver-week-grid'), {
+            frameSelector: '.dw-header-cell, .dw-corner, .dw-label-cell',
+            headerSelector: '.dw-header-cell',
+        });
     }
 
     rowHtml(person, dates, byDate) {

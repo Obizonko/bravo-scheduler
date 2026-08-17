@@ -750,6 +750,70 @@
     padding: 6px 2px 4px;
     border-bottom: 1px solid var(--border);
     border-left: 1px solid var(--border);
+    /* Рамка дошки - поверхня для перетягування (initBoardInteractions в api.js).
+       touch-action:none тут навмисно: прокрутку по обох осях рахує сам скрипт,
+       інакше на телефоні браузер "залипав" на вертикаль і вбік дошка не йшла. */
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+
+.wc-hour-ruler,
+.wc-corner,
+.dw-header-cell,
+.dw-corner,
+.dw-label-cell {
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+
+/* Шапка дня в гріді водіїв - теж якір для смуги розтягування. */
+.dw-header-cell {
+    position: relative;
+}
+
+.wc-scroll.wc-panning .wc-day-header,
+.wc-scroll.wc-panning .wc-hour-ruler,
+.wc-scroll.wc-panning .wc-corner {
+    cursor: grabbing;
+}
+
+/* Смуга розтягування на правому краї шапки дня. Ширина спільна для всіх
+   сіток, тож потягнувши одну межу, користувач міняє всі колонки одразу. */
+.wc-col-resizer {
+    position: absolute;
+    top: 0;
+    right: -3px;
+    width: 9px;
+    height: 100%;
+    z-index: 5;
+    cursor: col-resize;
+    touch-action: none;
+}
+
+.wc-col-resizer::after {
+    content: '';
+    position: absolute;
+    top: 20%;
+    bottom: 20%;
+    left: 3px;
+    width: 3px;
+    border-radius: 2px;
+    background: transparent;
+    transition: var(--transition);
+}
+
+.wc-col-resizer:hover::after {
+    background: var(--primary);
+}
+
+/* Під час розтягування курсор має лишатися col-resize над усією сторінкою -
+   інакше він блимає, щойно вказівник з'їжджає з тонкої смуги. */
+body.wc-col-resizing,
+body.wc-col-resizing * {
+    cursor: col-resize !important;
+    user-select: none !important;
 }
 
 .wc-day-title {

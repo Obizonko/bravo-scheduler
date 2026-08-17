@@ -465,13 +465,124 @@ function initColumnWidth() {
   const valueEl = wrap.querySelector('#colWidthValue');
   wrap.querySelectorAll('button[data-step]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      const next = Math.min(
-        COL_WIDTH_MAX,
-        Math.max(COL_WIDTH_MIN, getColumnWidth() + Number(btn.dataset.step) * COL_WIDTH_STEP)
-      );
-      localStorage.setItem(COL_WIDTH_KEY, String(next));
-      applyColumnWidth(next);
-      valueEl.textContent = next;
+      setColumnWidth(getColumnWidth() + Number(btn.dataset.step) * COL_WIDTH_STEP);
     });
+  });
+}
+
+/** Єдина точка зміни ширини: обрізає до меж, застосовує, зберігає й оновлює підпис. */
+function setColumnWidth(px) {
+  const next = Math.round(Math.min(COL_WIDTH_MAX, Math.max(COL_WIDTH_MIN, px)));
+  applyColumnWidth(next);
+  const valueEl = document.getElementById('colWidthValue');
+  if (valueEl) valueEl.textContent = next;
+  try {
+    localStorage.setItem(COL_WIDTH_KEY, String(next));
+  } catch {
+    /* приватний режим - ширина просто не переживе перезавантаження */
+  }
+  return next;
+}
+
+/**
+ * Дві взаємодії поверх будь-якої тижневої сітки. Викликати ПІСЛЯ кожного
+ * рендеру - обидві навішуються на щойно створені елементи.
+ *
+ * 1. Перетягування рамки (шапка днів, шкала годин, кутик) прокручує дошку в
+ *    обидва боки. Саме рамка, а не полотно: на полотні у ліда drag створює
+ *    зміну, і відбирати цей жест не можна. На телефоні це і є відповідь на
+ *    "не гортається вбік" - палець на назві дня й ведеш, без боротьби з
+ *    браузером за вісь (тому touch-action:none саме тут).
+ * 2. Тонка смуга на правому краї шапки дня тягне ширину колонок. Ширина
+ *    спільна для всіх сіток, тож тягнеш одну межу - міняються всі.
+ */
+function initBoardInteractions(scrollEl, opts = {}) {
+  if (!scrollEl) return;
+  // Селектори за замовчуванням - для годинних сіток (.wc-*). Грід водіїв має
+  // власну розмітку, тож передає свої.
+  const frameSelector = opts.frameSelector || '.wc-day-header, .wc-hour-ruler, .wc-corner';
+  const headerSelector = opts.headerSelector || '.wc-day-header';
+
+  // Смуги розтягування навішуємо щоразу - після перерендеру шапки нові.
+  attachColumnResizers(scrollEl, headerSelector);
+
+  if (scrollEl.dataset.interactionsReady === '1') return;
+  scrollEl.dataset.interactionsReady = '1';
+
+  // --- 1. Перетягування рамки ---
+  let pan = null;
+  scrollEl.addEventListener('pointerdown', (e) => {
+    const frame = e.target.closest(frameSelector);
+    if (!frame || e.target.closest('.wc-col-resizer')) return;
+    pan = {
+      id: e.pointerId,
+      x: e.clientX,
+      y: e.clientY,
+      left: scrollEl.scrollLeft,
+      top: scrollEl.scrollTop,
+    };
+    // Захоплення вказівника - не критичне: якщо браузер його не дає (вказівник
+    // уже відпущено), перетягування все одно працює через слухачі на контейнері.
+    try {
+      frame.setPointerCapture(e.pointerId);
+    } catch {
+      /* не біда */
+    }
+    scrollEl.classList.add('wc-panning');
+  });
+
+  scrollEl.addEventListener('pointermove', (e) => {
+    if (!pan || e.pointerId !== pan.id) return;
+    scrollEl.scrollLeft = pan.left - (e.clientX - pan.x);
+    scrollEl.scrollTop = pan.top - (e.clientY - pan.y);
+  });
+
+  const endPan = (e) => {
+    if (!pan || (e && e.pointerId !== pan.id)) return;
+    pan = null;
+    scrollEl.classList.remove('wc-panning');
+  };
+  scrollEl.addEventListener('pointerup', endPan);
+  scrollEl.addEventListener('pointercancel', endPan);
+}
+
+// --- 2. Розтягування колонок ---
+function attachColumnResizers(scrollEl, headerSelector) {
+  let resize = null;
+  scrollEl.querySelectorAll(headerSelector).forEach((header) => {
+    if (header.querySelector('.wc-col-resizer')) return;
+    const grip = document.createElement('div');
+    grip.className = 'wc-col-resizer';
+    grip.title = 'Потягніть, щоб змінити ширину колонок';
+    header.appendChild(grip);
+
+    grip.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      // Скільки колонок займає цей день: тягнучи його межу на N пікселів,
+      // ширину ОДНІЄЇ колонки міняємо на N/span - інакше день із трьома
+      // доріжками ріс би втричі швидше за курсор.
+      const span = Number((header.style.gridColumn.match(/span\s+(\d+)/) || [])[1]) || 1;
+      resize = { id: e.pointerId, x: e.clientX, start: getColumnWidth(), span };
+      try {
+        grip.setPointerCapture(e.pointerId);
+      } catch {
+        /* не біда - рух ловиться слухачем нижче */
+      }
+      document.body.classList.add('wc-col-resizing');
+    });
+
+    grip.addEventListener('pointermove', (e) => {
+      if (!resize || e.pointerId !== resize.id) return;
+      setColumnWidth(resize.start + (e.clientX - resize.x) / resize.span);
+    });
+
+    const endResize = (e) => {
+      if (!resize || (e && e.pointerId !== resize.id)) return;
+      resize = null;
+      document.body.classList.remove('wc-col-resizing');
+    };
+    grip.addEventListener('pointerup', endResize);
+    grip.addEventListener('pointercancel', endResize);
   });
 }
