@@ -161,7 +161,7 @@ class MasterPlanBoard {
 
         this.container.innerHTML = `
             <div class="wc-scroll">
-                <div class="wc-grid" style="grid-template-columns: 56px repeat(${dates.length * lanes}, minmax(90px, 1fr));">
+                <div class="wc-grid" style="grid-template-columns: 56px repeat(${dates.length * lanes}, minmax(var(--wc-col-w, 90px), 1fr));">
                     <div class="wc-corner"></div>
                     ${dayHeaders}
                     ${hourRuler}
@@ -694,6 +694,7 @@ function initMasterPlanPage() {
     lucide.createIcons();
     renderAuthBadge(document.getElementById('authBadge'));
     initMobileNav();
+    initColumnWidth();
 
     const board = new MasterPlanBoard({ container: document.getElementById('weekBoardContainer') });
 

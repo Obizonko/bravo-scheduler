@@ -251,7 +251,7 @@ class WeekCalendar {
 
         this.container.innerHTML = `
             <div class="wc-scroll">
-                <div class="wc-grid" style="grid-template-columns: 56px repeat(${this.board.days.length * this.lanes}, minmax(74px, 1fr));">
+                <div class="wc-grid" style="grid-template-columns: 56px repeat(${this.board.days.length * this.lanes}, minmax(var(--wc-col-w, 74px), 1fr));">
                     <div class="wc-corner"></div>
                     ${dayHeaders}
                     ${hourRuler}
@@ -705,6 +705,7 @@ function initWeekCalendarPage(serviceType, defaultDurationMin, lanes, showWorklo
     lucide.createIcons();
     renderAuthBadge(document.getElementById('authBadge'));
     initMobileNav();
+    initColumnWidth();
 
     const calendar = new WeekCalendar({
         container: document.getElementById('weekBoardContainer'),

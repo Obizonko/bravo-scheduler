@@ -210,6 +210,7 @@ function initDriverWeekPage(defaultDurationMin) {
     lucide.createIcons();
     renderAuthBadge(document.getElementById('authBadge'));
     initMobileNav();
+    initColumnWidth();
 
     const board = new DriverWeek({ container: document.getElementById('weekBoardContainer'), defaultDurationMin });
 

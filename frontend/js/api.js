@@ -413,3 +413,65 @@ function hourLabelsHtml() {
   }
   return html;
 }
+
+// --- Ширина колонок тижневих сіток ---
+//
+// Живе однією CSS-змінною --wc-col-w на :root, а сітки підставляють її в
+// minmax(). Тому один регулятор керує Складом, ТЕЦ, Водіями, Майстер-планом і
+// модалкою людини одночасно - без окремого стану на кожній сторінці.
+//
+// minmax(W, 1fr): поки колонки вміщаються, вони розтягуються на всю ширину;
+// щойно W стає більшим за доступне місце - сітка виходить за екран, і
+// .wc-scroll дає горизонтальну прокрутку. Саме так "розтягування" і працює.
+
+const COL_WIDTH_KEY = 'bravo_col_width';
+const COL_WIDTH_DEFAULT = 74;
+const COL_WIDTH_MIN = 56;
+const COL_WIDTH_MAX = 320;
+const COL_WIDTH_STEP = 28;
+
+function getColumnWidth() {
+  const raw = Number(localStorage.getItem(COL_WIDTH_KEY));
+  if (!Number.isFinite(raw) || raw <= 0) return COL_WIDTH_DEFAULT;
+  return Math.min(COL_WIDTH_MAX, Math.max(COL_WIDTH_MIN, raw));
+}
+
+function applyColumnWidth(px) {
+  document.documentElement.style.setProperty('--wc-col-w', `${px}px`);
+}
+
+/**
+ * Кнопки «вужче/ширше» в панель .week-nav. Ширина зберігається в localStorage,
+ * тож вибір переживає перезавантаження й переходи між сторінками.
+ * Викликається до першого рендеру сітки - змінна має бути виставлена заздалегідь.
+ */
+function initColumnWidth() {
+  applyColumnWidth(getColumnWidth());
+
+  const nav = document.querySelector('.week-nav');
+  if (!nav || document.getElementById('colWidthControl')) return;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'col-width-control';
+  wrap.id = 'colWidthControl';
+  wrap.innerHTML = `
+    <span class="col-width-label">Ширина</span>
+    <button type="button" class="text-btn" data-step="-1" title="Вужчі колонки" aria-label="Вужчі колонки">−</button>
+    <span class="col-width-value" id="colWidthValue">${getColumnWidth()}</span>
+    <button type="button" class="text-btn" data-step="1" title="Ширші колонки" aria-label="Ширші колонки">+</button>
+  `;
+  nav.appendChild(wrap);
+
+  const valueEl = wrap.querySelector('#colWidthValue');
+  wrap.querySelectorAll('button[data-step]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const next = Math.min(
+        COL_WIDTH_MAX,
+        Math.max(COL_WIDTH_MIN, getColumnWidth() + Number(btn.dataset.step) * COL_WIDTH_STEP)
+      );
+      localStorage.setItem(COL_WIDTH_KEY, String(next));
+      applyColumnWidth(next);
+      valueEl.textContent = next;
+    });
+  });
+}

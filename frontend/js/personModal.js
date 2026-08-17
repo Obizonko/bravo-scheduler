@@ -1,13 +1,17 @@
 'use strict';
 
 /**
- * Модалка людини: клік на рядок у списку "Люди" відкриває календар. ОДИН
- * тижневий календар (години×дні, той самий візуальний формат, що й
- * weekCalendar.js/masterPlan.js), що показує ОДРАЗУ обидва типи подій:
- * чергування (жовті бари, GET /people/:id/calendar) і активності Master Plan
- * (сині - людина на них, пунктирні - ні; лід може додати/прибрати участь
- * прямо тут, GET/POST/DELETE /activity-assignments).
+ * Модалка людини: клік на рядок у списку "Люди" відкриває календар (години×дні,
+ * той самий візуальний формат, що й weekCalendar.js/masterPlan.js), який показує
+ * ОДРАЗУ обидва типи подій: чергування (жовті бари, GET /people/:id/calendar) і
+ * активності Master Plan (сині - людина на них, пунктирні - ні; лід може
+ * додати/прибрати участь прямо тут, GET/POST/DELETE /activity-assignments).
+ *
+ * Два режими перегляду - тиждень і один день; перемикач у шапці, вибір
+ * запамʼятовується між відкриттями.
  */
+
+const PERSON_VIEW_KEY = 'bravo_person_view';
 
 let personModalState = null;
 
@@ -76,13 +80,24 @@ function eventBarHtml(event) {
     `;
 }
 
-async function renderCalendarTab(bodyEl, userId, monday) {
+/**
+ * Календар людини. Два режими:
+ *   week - понеділок..неділя, оглядово;
+ *   day  - одна доба на всю ширину. На телефоні тиждень стискає колонки до
+ *          нечитабельних, тож саме день є практичним переглядом.
+ * Режим і поточна дата живуть у personModalState, тому перемикання й стрілки
+ * не залежать від того, звідки викликано перерендер.
+ */
+async function renderCalendarTab(bodyEl, userId) {
+    const isDay = personModalState.view === 'day';
+    const rangeStart = isDay ? personModalState.day : personModalState.monday;
+    const rangeEnd = isDay ? personModalState.day : addDaysStr(personModalState.monday, 6);
+
     const isFirstLoad = !personModalState.loaded;
     if (isFirstLoad) bodyEl.innerHTML = '<div class="spinner-hint">Завантаження...</div>';
     try {
-        const sunday = addDaysStr(monday, 6);
         const [dutyCalendar, allActivities, myAssignments] = await Promise.all([
-            Api.get(`/people/${userId}/calendar?date_from=${monday}&date_to=${sunday}`),
+            Api.get(`/people/${userId}/calendar?date_from=${rangeStart}&date_to=${rangeEnd}`),
             Api.get('/master-plan'),
             Api.get(`/activity-assignments?user_id=${userId}`),
         ]);
@@ -96,7 +111,7 @@ async function renderCalendarTab(bodyEl, userId, monday) {
         const prevScrollEl = bodyEl.querySelector('.wc-scroll');
         const savedScroll = prevScrollEl ? { top: prevScrollEl.scrollTop, left: prevScrollEl.scrollLeft } : null;
 
-        const dates = getWeekDates(monday);
+        const dates = isDay ? [personModalState.day] : getWeekDates(personModalState.monday);
 
         function eventsForDate(date) {
             const duty = (shiftsByDate.get(date) || []).map((s) => ({
@@ -146,9 +161,13 @@ async function renderCalendarTab(bodyEl, userId, monday) {
 
         bodyEl.innerHTML = `
             <div class="week-nav">
-                <button type="button" class="month-nav-btn" id="calPrevWeek">‹</button>
-                <strong>${formatWeekRangeLabel(monday)}</strong>
-                <button type="button" class="month-nav-btn" id="calNextWeek">›</button>
+                <button type="button" class="month-nav-btn" id="calPrevWeek" title="${isDay ? 'Попередній день' : 'Попередній тиждень'}">‹</button>
+                <strong>${isDay ? formatDayLabel(personModalState.day) : formatWeekRangeLabel(personModalState.monday)}</strong>
+                <button type="button" class="month-nav-btn" id="calNextWeek" title="${isDay ? 'Наступний день' : 'Наступний тиждень'}">›</button>
+                <div class="view-toggle">
+                    <button type="button" class="view-toggle-btn${isDay ? '' : ' active'}" data-view="week">Тиждень</button>
+                    <button type="button" class="view-toggle-btn${isDay ? ' active' : ''}" data-view="day">День</button>
+                </div>
             </div>
             <div class="agenda-legend">
                 <span><span class="agenda-legend-dot agenda-legend-dot--duty"></span>Чергування</span>
@@ -156,7 +175,7 @@ async function renderCalendarTab(bodyEl, userId, monday) {
                 <span><span class="agenda-legend-dot agenda-legend-dot--free"></span>Активність (не бере участі)</span>
             </div>
             <div class="wc-scroll" style="max-height: 50vh;">
-                <div class="wc-grid" style="grid-template-columns: 56px repeat(${dates.length * lanes}, minmax(70px, 1fr));">
+                <div class="wc-grid" style="grid-template-columns: 56px repeat(${dates.length * lanes}, minmax(var(--wc-col-w, 70px), 1fr));">
                     <div class="wc-corner"></div>
                     ${dayHeaders}
                     ${hourRuler}
@@ -165,8 +184,11 @@ async function renderCalendarTab(bodyEl, userId, monday) {
             </div>
         `;
 
-        document.getElementById('calPrevWeek').addEventListener('click', () => shiftCalendarWeek(userId, -1));
-        document.getElementById('calNextWeek').addEventListener('click', () => shiftCalendarWeek(userId, 1));
+        document.getElementById('calPrevWeek').addEventListener('click', () => shiftCalendarRange(userId, -1));
+        document.getElementById('calNextWeek').addEventListener('click', () => shiftCalendarRange(userId, 1));
+        bodyEl.querySelectorAll('.view-toggle-btn').forEach((btn) => {
+            btn.addEventListener('click', () => setCalendarView(userId, btn.dataset.view));
+        });
         bodyEl.querySelectorAll('.wc-bar-remove').forEach((btn) => {
             btn.addEventListener('click', () => onToggleActivity(userId, btn.dataset.assignmentId, null));
         });
@@ -189,9 +211,40 @@ async function renderCalendarTab(bodyEl, userId, monday) {
     }
 }
 
-function shiftCalendarWeek(userId, delta) {
-    personModalState.monday = addDaysStr(personModalState.monday, delta * 7);
-    renderCalendarTab(document.getElementById('personModalBody'), userId, personModalState.monday);
+/** Стрілки: у тижневому режимі крок 7 днів, у денному - один. */
+function shiftCalendarRange(userId, delta) {
+    if (personModalState.view === 'day') {
+        personModalState.day = addDaysStr(personModalState.day, delta);
+    } else {
+        personModalState.monday = addDaysStr(personModalState.monday, delta * 7);
+    }
+    renderCalendarTab(document.getElementById('personModalBody'), userId);
+}
+
+/**
+ * Перемикання тиждень/день. Переходи узгоджені між собою: з тижня в день
+ * потрапляємо на сьогодні, якщо воно в цьому тижні (найчастіший намір), інакше
+ * на його понеділок; з дня в тиждень - на тиждень, що містить обраний день.
+ * Вибір запамʼятовується, щоб не перемикати його щоразу заново.
+ */
+function setCalendarView(userId, view) {
+    if (view === personModalState.view) return;
+
+    if (view === 'day') {
+        const today = todayDateStr();
+        const week = getWeekDates(personModalState.monday);
+        personModalState.day = week.includes(today) ? today : personModalState.monday;
+    } else {
+        personModalState.monday = getMonday(personModalState.day);
+    }
+
+    personModalState.view = view;
+    try {
+        localStorage.setItem(PERSON_VIEW_KEY, view);
+    } catch {
+        /* приватний режим браузера - не критично, просто не запамʼятаємо */
+    }
+    renderCalendarTab(document.getElementById('personModalBody'), userId);
 }
 
 /** assignmentId - прибрати участь; activityId - додати. Рівно один із двох заданий. */
@@ -202,7 +255,7 @@ async function onToggleActivity(userId, assignmentId, activityId) {
         } else {
             await Api.post('/activity-assignments', { user_id: userId, master_plan_id: activityId });
         }
-        await renderCalendarTab(document.getElementById('personModalBody'), userId, personModalState.monday);
+        await renderCalendarTab(document.getElementById('personModalBody'), userId);
     } catch (err) {
         showBanner(err.message || 'Не вдалося оновити участь в активності');
     }
@@ -210,7 +263,14 @@ async function onToggleActivity(userId, assignmentId, activityId) {
 
 function openPersonModal(userId, name) {
     closePersonModal();
-    personModalState = { monday: getMonday(todayDateStr()), loaded: false };
+    const today = todayDateStr();
+    let savedView = 'week';
+    try {
+        savedView = localStorage.getItem(PERSON_VIEW_KEY) === 'day' ? 'day' : 'week';
+    } catch {
+        /* приватний режим браузера - лишається тижневий за замовчуванням */
+    }
+    personModalState = { monday: getMonday(today), day: today, view: savedView, loaded: false };
 
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
@@ -231,7 +291,7 @@ function openPersonModal(userId, name) {
         if (e.target === overlay) closePersonModal();
     });
 
-    renderCalendarTab(document.getElementById('personModalBody'), userId, personModalState.monday);
+    renderCalendarTab(document.getElementById('personModalBody'), userId);
 }
 
 document.addEventListener('keydown', (e) => {
