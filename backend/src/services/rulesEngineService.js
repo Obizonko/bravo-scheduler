@@ -299,6 +299,9 @@ async function getPeopleStatus(date, at) {
         user_id: user.user_id,
         name: user.name,
         is_driver: user.is_driver,
+        // Потрібен формі редагування людини на сторінці "Люди" - інакше вона не
+        // мала б чим заповнити поле й мовчки стирала б збережений контакт.
+        telegram_id: user.telegram_id,
         role: user.role,
         status: current ? 'on_duty' : 'free',
         current,

@@ -367,6 +367,10 @@ class WeekCalendar {
 
     onTrackMouseDown(e, track) {
         if (e.target.closest('.wc-bar')) return;
+        // На тачі полотно віддане прокрутці (initBoardInteractions в api.js):
+        // це єдиний спосіб гортати дошку пальцем, і створення драгом мусило б
+        // з нею конкурувати. Зміну на телефоні створюють кнопкою "+ Створити".
+        if (e.pointerType === 'touch' || e.pointerType === 'pen') return;
         if (!Session.isLead()) return;
         e.preventDefault();
 

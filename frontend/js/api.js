@@ -526,8 +526,19 @@ function initBoardInteractions(scrollEl, opts = {}) {
   // --- 1. Перетягування рамки ---
   let pan = null;
   scrollEl.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.wc-col-resizer')) return;
+
+    // Мишею тягнемо лише за рамку - на полотні миша створює/пересуває зміни.
+    // Пальцем тягнемо ЗВІДУСІЛЬ, крім самих елементів керування: полотно займає
+    // майже весь екран, і вимагати влучити в тонку шапку означало б лишити
+    // дошку фактично негортабельною на телефоні.
+    const isTouch = e.pointerType === 'touch' || e.pointerType === 'pen';
+    const onControl = e.target.closest(
+      '.wc-bar, .wc-resize-handle, button, select, input, textarea, a, label'
+    );
     const frame = e.target.closest(frameSelector);
-    if (!frame || e.target.closest('.wc-col-resizer')) return;
+    const surface = frame || (isTouch && !onControl ? scrollEl : null);
+    if (!surface) return;
     pan = {
       id: e.pointerId,
       x: e.clientX,
@@ -538,7 +549,7 @@ function initBoardInteractions(scrollEl, opts = {}) {
     // Захоплення вказівника - не критичне: якщо браузер його не дає (вказівник
     // уже відпущено), перетягування все одно працює через слухачі на контейнері.
     try {
-      frame.setPointerCapture(e.pointerId);
+      surface.setPointerCapture(e.pointerId);
     } catch {
       /* не біда */
     }

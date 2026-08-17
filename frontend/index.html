@@ -130,19 +130,23 @@
         if (person.is_driver) tags.push('<span class="tag tag--driver">Водій</span>');
         if (person.role === 'lead') tags.push('<span class="tag">Адмін</span>');
 
-        const removeBtn = Session.isLead()
-            ? `<button type="button" class="person-remove" data-user-id="${person.user_id}" title="Видалити з ростеру">×</button>`
+        // Кнопки редагування/видалення несуть data-* із поточними значеннями:
+        // форма відкривається без додаткового запиту до API.
+        const leadBtns = Session.isLead()
+            ? `<button type="button" class="person-edit" data-user-id="${person.user_id}" title="Редагувати людину">✎</button>
+               <button type="button" class="person-remove" data-user-id="${person.user_id}" title="Видалити з ростеру">×</button>`
             : '';
 
         return `
-            <article class="card person-row" data-user-id="${person.user_id}" data-name="${person.name}">
+            <article class="card person-row" data-user-id="${person.user_id}" data-name="${escapeHtml(person.name)}"
+                     data-is-driver="${person.is_driver ? '1' : ''}" data-telegram="${escapeHtml(person.telegram_id || '')}">
                 <span class="status-dot ${person.status}"></span>
                 <div class="person-info">
-                    <strong>${person.name}</strong>
+                    <strong>${escapeHtml(person.name)}</strong>
                     <span class="person-status">${statusText}</span>
                     <div class="person-tags">${tags.join('')}</div>
                 </div>
-                ${removeBtn}
+                ${leadBtns}
                 <i data-lucide="chevron-right" class="person-chevron"></i>
             </article>
         `;
@@ -195,6 +199,78 @@
         }
     }
 
+    /**
+     * Редагування людини: імʼя, ознака водія, Telegram. Роль тут навмисно
+     * відсутня - вона змінюється лише супер-адміном на сторінці "Адміни", бо
+     * тягне за собою видачу/анулювання персонального PIN.
+     *
+     * stopPropagation обовʼязковий: клік по рядку відкриває модалку календаря,
+     * і без нього форма зникала б одразу під нею.
+     */
+    function onEditPerson(e) {
+        e.stopPropagation();
+        const row = e.currentTarget.closest('.person-row');
+        const userId = row.dataset.userId;
+
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.id = 'personEditOverlay';
+        overlay.innerHTML = `
+            <div class="modal-box modal-box--narrow" role="dialog" aria-modal="true">
+                <div class="modal-header">
+                    <h2>Редагувати людину</h2>
+                    <button type="button" class="modal-close-btn" id="personEditClose">×</button>
+                </div>
+                <form id="personEditForm" class="stacked-form">
+                    <label class="field-label">Імʼя та прізвище
+                        <input type="text" id="editName" value="${row.dataset.name}" required minlength="2" maxlength="200">
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="editDriver" ${row.dataset.isDriver ? 'checked' : ''}> Водій
+                    </label>
+                    <label class="field-label">Telegram
+                        <input type="text" id="editTelegram" value="${row.dataset.telegram}" placeholder="@nickname" maxlength="100">
+                    </label>
+                    <div class="form-actions">
+                        <button type="submit" class="primary-btn">Зберегти</button>
+                        <button type="button" class="outline-btn" id="personEditCancel">Скасувати</button>
+                    </div>
+                </form>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        const close = () => overlay.remove();
+        document.getElementById('personEditClose').addEventListener('click', close);
+        document.getElementById('personEditCancel').addEventListener('click', close);
+        overlay.addEventListener('click', (ev) => {
+            if (ev.target === overlay) close();
+        });
+
+        document.getElementById('personEditForm').addEventListener('submit', async (ev) => {
+            ev.preventDefault();
+            const name = document.getElementById('editName').value.trim();
+            if (name.length < 2) {
+                showBanner('Імʼя має містити щонайменше 2 символи');
+                return;
+            }
+            try {
+                await Api.put(`/users/${userId}`, {
+                    name,
+                    is_driver: document.getElementById('editDriver').checked,
+                    telegram_id: document.getElementById('editTelegram').value.trim(),
+                });
+                close();
+                showBanner('Дані оновлено', 'success');
+                await loadPeople();
+            } catch (err) {
+                showBanner(err.message || 'Не вдалося зберегти зміни');
+            }
+        });
+
+        document.getElementById('editName').focus();
+    }
+
     let peopleLoaded = false;
 
     async function loadPeople() {
@@ -212,6 +288,9 @@
             container.innerHTML = data.people.map(personRowHtml).join('');
             container.querySelectorAll('.person-remove').forEach((btn) => {
                 btn.addEventListener('click', onRemovePerson);
+            });
+            container.querySelectorAll('.person-edit').forEach((btn) => {
+                btn.addEventListener('click', onEditPerson);
             });
             container.querySelectorAll('.person-row').forEach((row) => {
                 row.addEventListener('click', () => openPersonModal(row.dataset.userId, row.dataset.name));

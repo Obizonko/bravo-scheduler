@@ -116,6 +116,25 @@
     color: var(--danger);
 }
 
+/* Олівець стоїть лівіше за хрестик - обидві кнопки абсолютні в кутку рядка,
+   тож рознесені по right, а не потоком. */
+.person-edit {
+    position: absolute;
+    top: 8px;
+    right: 34px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 14px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 2px 4px;
+}
+
+.person-edit:hover {
+    color: var(--text);
+}
+
 .add-person-card {
     display: flex;
     gap: 10px;
@@ -451,6 +470,63 @@
     padding: 24px;
 }
 
+/* Форма на кілька полів не має розтягуватись на всю ширину календарної модалки. */
+.modal-box--narrow {
+    max-width: 420px;
+}
+
+.stacked-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.field-label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.field-label input[type="text"] {
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--text);
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+.field-label input[type="text"]:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* .primary-btn/.outline-btn за замовчуванням width:100% (style.css) - у рядку
+   кнопок це змусило б кожну займати всю ширину. */
+.form-actions .primary-btn,
+.form-actions .outline-btn {
+    width: auto;
+    height: auto;
+    margin: 0;
+    padding: 10px 18px;
+    flex: 1;
+}
+
 .modal-header {
     display: flex;
     align-items: center;
@@ -773,6 +849,12 @@
     position: relative;
 }
 
+/* Клітинки гріда водіїв прокручує той самий обробник, що й решту дощок.
+   Без touch-action:none браузер гортав би ще й самостійно - рух подвоювався б. */
+.dw-cell {
+    touch-action: none;
+}
+
 .wc-scroll.wc-panning .wc-day-header,
 .wc-scroll.wc-panning .wc-hour-ruler,
 .wc-scroll.wc-panning .wc-corner {
@@ -857,10 +939,15 @@ body.wc-col-resizing * {
 
 .wc-lane-track {
     position: relative;
-    /* touch-action НЕ none тут навмисно - порожнє місце доріжки лишається
-       основним способом прокрутити календар пальцем (24 години заввишки).
-       Створення через драг на тачі поступається місцем скролу - для тач
-       краще використати кнопку "+ Створити..." (не потребує жесту). */
+    /* touch-action:none - прокрутку пальцем по полотну рахує сам скрипт
+       (initBoardInteractions в api.js), а не браузер.
+       Чому не auto: полотно заввишки 24 години, і при overflow по обох осях
+       браузер майже завжди вибирав вертикаль - горизонтальний намір губився,
+       і дошка вбік не гортались. Своїм обробником ми рухаємо обидві осі
+       одночасно, без вибору осі й без порогів.
+       Наслідок: створення зміни драгом по полотну на тачі недоступне - для
+       цього є кнопка "+ Створити зміну", що не потребує жесту. */
+    touch-action: none;
     border-left: 1px solid var(--border);
     background-image: repeating-linear-gradient(
         to bottom,

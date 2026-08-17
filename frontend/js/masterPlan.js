@@ -224,6 +224,9 @@ class MasterPlanBoard {
 
     onTrackMouseDown(e, track) {
         if (e.target.closest('.mp-bar')) return;
+        // Те саме, що на Складі/ТЕЦ: пальцем полотно гортає дошку, а активність
+        // створюється кнопкою - інакше жести конкурують за той самий рух.
+        if (e.pointerType === 'touch' || e.pointerType === 'pen') return;
         if (!Session.isLead()) return;
         e.preventDefault();
 
