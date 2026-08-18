@@ -965,6 +965,66 @@ li{
 
     }
 
+    /* Вхід/вихід закріплюємо вгорі праворуч - дзеркально до гамбургера зліва.
+       У потоці топбара на цій ширині посилання "Увійти" опинялось на ~274px
+       від верху (заголовок і довгий опис переносяться в кілька рядків) і мало
+       ціль 45x17px - знайти й влучити пальцем було майже неможливо, тож
+       працювати адміном з телефона не виходило. */
+    .auth-badge{
+
+        position:fixed;
+        top:16px;
+        right:16px;
+        z-index:90;
+
+        gap:8px;
+        padding:0 12px;
+        min-height:44px;
+        border-radius:12px;
+        background:var(--sidebar);
+        box-shadow:var(--shadow);
+
+    }
+
+    .auth-badge .text-btn{
+
+        color:white;
+        font-size:14px;
+        /* Розтягуємо на всю висоту пігулки: клікабельним стає весь блок,
+           а не самі літери. */
+        display:flex;
+        align-items:center;
+        align-self:stretch;
+
+    }
+
+    .auth-badge .text-btn:hover{
+
+        color:var(--primary);
+
+    }
+
+    /* Роль поруч із "Вийти" - компактніше, ніж на десктопі: на 375px повний
+       підпис із імʼям виштовхував би кнопку виходу за край екрана. */
+    .auth-badge .role-pill{
+
+        font-size:11px;
+        padding:3px 8px;
+        max-width:38vw;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        white-space:nowrap;
+
+    }
+
+    /* Поки відкрита висувна панель, пігулка не має висіти над затемненням -
+       так само, як ховається гамбургер. */
+    body.mobile-nav-open .auth-badge{
+
+        display:none;
+
+    }
+
     .main{
 
         padding:18px;
