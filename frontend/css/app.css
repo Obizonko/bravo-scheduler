@@ -1362,8 +1362,23 @@ body.wc-col-resizing * {
     display: flex;
     align-items: baseline;
     gap: 6px;
-    /* Місце під кнопки праворуч - вони позиціонуються абсолютно. */
-    padding-right: 34px;
+}
+
+/* Для ліда весь чіп - кнопка редагування. Ціль на дотик має бути великою,
+   тому мінімальна висота 40px: значок ✎ у кутку був майже непопадальним. */
+.dw-chip--editable {
+    width: 100%;
+    min-height: 40px;
+    text-align: left;
+    border: none;
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.dw-chip--editable:hover {
+    filter: brightness(0.96);
 }
 
 .dw-chip-time {
@@ -1387,34 +1402,6 @@ body.wc-col-resizing * {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    padding-right: 34px;
-}
-
-.dw-chip-actions {
-    position: absolute;
-    top: 3px;
-    right: 4px;
-    display: flex;
-    gap: 2px;
-}
-
-.dw-chip-remove,
-.dw-chip-edit {
-    background: none;
-    border: none;
-    color: #5b4400;
-    cursor: pointer;
-    font-size: 12px;
-    line-height: 1;
-    padding: 0 2px;
-    flex-shrink: 0;
-    opacity: 0.65;
-    transition: var(--transition);
-}
-
-.dw-chip-remove:hover,
-.dw-chip-edit:hover {
-    opacity: 1;
 }
 
 .dw-add-btn {
@@ -1424,62 +1411,74 @@ body.wc-col-resizing * {
     font-size: 12px;
     color: var(--text-secondary);
     cursor: pointer;
-    padding: 3px;
-}
-
-.dw-add-form {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
-
-.dw-add-form input[type="time"],
-.dw-add-form input[type="number"],
-.dw-add-form input[type="text"] {
-    font-size: 10px;
-    padding: 3px;
-    border: 1px solid var(--border);
-    border-radius: 5px;
+    /* 36px - мінімум, у який комфортно влучити пальцем; попередні 3px padding
+       давали ціль близько 20px заввишки. */
+    min-height: 36px;
+    padding: 4px 6px;
     font-family: inherit;
-    min-width: 0;
+    transition: var(--transition);
 }
 
-/* Час "від-до" в один рядок - вони парні за змістом і разом вужчі за клітинку. */
-.dw-form-row {
+.dw-add-btn:hover {
+    border-color: var(--primary);
+    color: var(--text);
+}
+
+/* --- Модалка виїзду (сторінка "Водії") --- */
+
+.modal-subtitle {
+    margin: -8px 0 18px;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+/* "Початок" і "Кінець" поруч: вони парні за змістом і разом вміщаються
+   навіть на вузькому екрані. */
+.field-row {
     display: flex;
-    gap: 3px;
+    gap: 12px;
 }
 
-.dw-form-row > * {
+.field-row > .field-label {
     flex: 1;
     min-width: 0;
 }
 
-.dw-edit-cancel {
-    font-size: 11px;
-    padding: 3px;
-    border: 1px solid var(--border);
-    background: var(--card);
-    color: var(--text-secondary);
-    border-radius: 5px;
-    cursor: pointer;
+.field-label input[type="time"],
+.field-label input[type="number"] {
     font-family: inherit;
+    font-size: 15px;
+    color: var(--text);
+    /* 44px - висота, у яку впевнено влучає палець; на телефоні це головний
+       спосіб вводу на цій сторінці. */
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
 }
 
-/* Форма редагування ширша за чіп - на час правки клітинка може підрости,
-   інакше в неї не влізають чотири поля. */
-.dw-edit-form {
-    background: var(--card);
-    border: 1px solid var(--primary);
-    border-radius: 6px;
-    padding: 4px;
+.field-label input[type="text"] {
+    min-height: 44px;
 }
 
-.dw-add-confirm {
-    font-size: 11px;
-    padding: 3px;
-    border: 1px solid var(--primary);
-    background: var(--primary-light);
-    border-radius: 5px;
+.field-label input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+/* Видалення - окремо під основними діями й приглушено: це рідка й незворотна
+   дія, вона не має конкурувати за увагу зі "Зберегти". */
+.danger-link {
+    background: none;
+    border: none;
+    color: var(--danger);
+    font-family: inherit;
+    font-size: 13px;
     cursor: pointer;
+    padding: 6px;
+    align-self: center;
+}
+
+.danger-link:hover {
+    text-decoration: underline;
 }

@@ -15,8 +15,8 @@ class DriverWeek {
         this.defaultDurationMin = defaultDurationMin;
         this.monday = getMonday(todayDateStr());
         this.board = null;
-        this.openCellKey = null; // 'userId|date', щоб показати форму додавання лише в одній клітинці
-        this.editingShiftId = null; // виїзд, відкритий на редагування (час/км/примітка)
+        // Інлайн-форм у клітинках більше немає - введення й редагування
+        // йдуть через модалку, тож і стану "яка клітинка відкрита" не потрібно.
     }
 
     shiftWeek(delta) {
@@ -94,29 +94,18 @@ class DriverWeek {
         `;
 
         this.container.querySelectorAll('.dw-add-btn').forEach((btn) => {
-            btn.addEventListener('click', (e) => this.onToggleAddForm(e));
-        });
-        // Форма редагування має той самий клас dw-add-form (спільні стилі), але
-        // інший обробник - розрізняємо за наявністю data-shift-id.
-        this.container.querySelectorAll('.dw-add-form').forEach((form) => {
-            form.addEventListener('submit', (e) =>
-                form.dataset.shiftId ? this.onSaveInterval(e) : this.onCreateInterval(e)
+            btn.addEventListener('click', (e) =>
+                this.openTripModal({ userId: e.currentTarget.dataset.userId, date: e.currentTarget.dataset.date })
             );
         });
-        this.container.querySelectorAll('.dw-chip-remove').forEach((btn) => {
-            btn.addEventListener('click', (e) => this.onRemoveInterval(e));
-        });
-        this.container.querySelectorAll('.dw-chip-edit').forEach((btn) => {
-            btn.addEventListener('click', (e) => {
-                this.editingShiftId = e.currentTarget.dataset.shiftId;
-                this.openCellKey = null;
-                this.render();
-            });
-        });
-        this.container.querySelectorAll('.dw-edit-cancel').forEach((btn) => {
-            btn.addEventListener('click', () => {
-                this.editingShiftId = null;
-                this.render();
+        this.container.querySelectorAll('.dw-chip--editable').forEach((chip) => {
+            chip.addEventListener('click', (e) => {
+                const el = e.currentTarget;
+                this.openTripModal({
+                    userId: el.dataset.userId,
+                    date: el.dataset.date,
+                    trip: this.findTrip(el.dataset.shiftId),
+                });
             });
         });
 
@@ -142,47 +131,29 @@ class DriverWeek {
     }
 
     cellHtml(userId, date, intervals) {
-        const cellKey = `${userId}|${date}`;
+        // Клітинка дня свідомо тримає лише чіпи й кнопку "+": на телефоні вона
+        // завширшки ~130px, і форма з чотирьох полів там не поміщалась. Введення
+        // й редагування винесені в модалку (openTripModal).
         const chipsHtml = intervals
             .map((iv) => {
-                // Той самий виїзд, відкритий на редагування, показуємо формою
-                // замість чіпа - решта клітинки лишається на місці.
-                if (Session.isLead() && this.editingShiftId === iv.shift_id) {
-                    return `
-                <form class="dw-add-form dw-edit-form" data-shift-id="${iv.shift_id}">
-                    <div class="dw-form-row">
-                        <input type="time" class="dw-start" value="${iv.time_start}" required>
-                        <input type="time" class="dw-end" value="${iv.time_end}" required>
-                    </div>
-                    <input type="number" class="dw-km" placeholder="км" min="0" step="1" inputmode="numeric" value="${iv.distance_km == null ? '' : iv.distance_km}">
-                    <input type="text" class="dw-note" placeholder="Куди / примітка" maxlength="500" value="${escapeHtml(iv.note || '')}">
-                    <div class="dw-form-row">
-                        <button type="submit" class="dw-add-confirm">✓ Зберегти</button>
-                        <button type="button" class="dw-edit-cancel">Скасувати</button>
-                    </div>
-                </form>
-            `;
-                }
-
                 const km = iv.distance_km != null && iv.distance_km !== '' ? `<span class="dw-chip-km">${iv.distance_km} км</span>` : '';
-                // Примітка може бути довгою (куди виїзд, контакт) - у чіпі
-                // показуємо в один рядок з обрізанням, повний текст у title.
+                // Примітка буває довгою (куди виїзд, контакт) - у чіпі один рядок
+                // з обрізанням, повний текст у title.
                 const note = iv.note ? `<span class="dw-chip-note" title="${escapeHtml(iv.note)}">${escapeHtml(iv.note)}</span>` : '';
-                const editBtn = Session.isLead()
-                    ? `<button type="button" class="dw-chip-edit" data-shift-id="${iv.shift_id}" title="Редагувати виїзд">✎</button>`
-                    : '';
+                // Для ліда клікабельний увесь чіп, а не значок: на дотик це
+                // ціль у півсотні пікселів замість десяти.
+                const tag = Session.isLead() ? 'button' : 'div';
+                const attrs = Session.isLead()
+                    ? `type="button" class="dw-chip dw-chip--editable" data-shift-id="${iv.shift_id}" data-user-id="${userId}" data-date="${date}" title="Редагувати виїзд"`
+                    : 'class="dw-chip"';
                 return `
-                <div class="dw-chip">
+                <${tag} ${attrs}>
                     <div class="dw-chip-main">
                         <span class="dw-chip-time">${iv.time_start}–${iv.time_end}</span>
                         ${km}
                     </div>
                     ${note}
-                    <div class="dw-chip-actions">
-                        ${editBtn}
-                        ${Session.isLead() ? `<button type="button" class="dw-chip-remove" data-record-id="${iv.record_id}" title="Прибрати виїзд">×</button>` : ''}
-                    </div>
-                </div>
+                </${tag}>
             `;
             })
             .join('');
@@ -191,83 +162,117 @@ class DriverWeek {
             return `<div class="dw-cell">${chipsHtml}</div>`;
         }
 
-        const isOpen = this.openCellKey === cellKey;
+        return `<div class="dw-cell">${chipsHtml}<button type="button" class="dw-add-btn" data-user-id="${userId}" data-date="${date}" title="Додати виїзд для цієї людини на цей день">+ Виїзд</button></div>`;
+    }
+
+    /** Виїзд за shift_id серед уже завантаженого борду - без зайвого запиту до API. */
+    findTrip(shiftId) {
+        for (const day of this.board.days) {
+            for (const shift of day.shifts) {
+                if (shift.shift_id !== shiftId) continue;
+                return {
+                    shift_id: shift.shift_id,
+                    time_start: shift.time_start,
+                    time_end: shift.time_end,
+                    distance_km: shift.distance_km,
+                    note: shift.note,
+                };
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Одна модалка на створення й на редагування виїзду.
+     *
+     * Раніше форма жила всередині клітинки дня, а та на телефоні завширшки
+     * ~130px - чотири поля туди фізично не влазили, і вводити з телефону було
+     * неможливо. Модалка займає всю ширину екрана, поля великі, порядок
+     * природний: коли - скільки - куди.
+     */
+    openTripModal({ userId, date, trip = null }) {
+        const isEdit = Boolean(trip);
+        const person = this.board.people.find((p) => p.user_id === userId);
         const defaultEnd = minToHm(hmToMin('09:00') + this.defaultDurationMin);
-        const formHtml = isOpen
-            ? `
-                <form class="dw-add-form" data-user-id="${userId}" data-date="${date}">
-                    <div class="dw-form-row">
-                        <input type="time" class="dw-start" value="09:00" required>
-                        <input type="time" class="dw-end" value="${defaultEnd}" required>
+
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.id = 'tripModalOverlay';
+        overlay.innerHTML = `
+            <div class="modal-box modal-box--narrow" role="dialog" aria-modal="true">
+                <div class="modal-header">
+                    <h2>${isEdit ? 'Редагувати виїзд' : 'Новий виїзд'}</h2>
+                    <button type="button" class="modal-close-btn" id="tripModalClose">×</button>
+                </div>
+                <p class="modal-subtitle">${escapeHtml(person ? person.name : '')} · ${formatDayLabel(date)}</p>
+                <form id="tripForm" class="stacked-form">
+                    <div class="field-row">
+                        <label class="field-label">Початок
+                            <input type="time" id="tripStart" value="${isEdit ? trip.time_start : '09:00'}" required>
+                        </label>
+                        <label class="field-label">Кінець
+                            <input type="time" id="tripEnd" value="${isEdit ? trip.time_end : defaultEnd}" required>
+                        </label>
                     </div>
-                    <input type="number" class="dw-km" placeholder="км" min="0" step="1" inputmode="numeric">
-                    <input type="text" class="dw-note" placeholder="Куди / примітка" maxlength="500">
-                    <button type="submit" class="dw-add-confirm">✓ Додати</button>
+                    <label class="field-label">Кілометраж
+                        <input type="number" id="tripKm" min="0" step="1" inputmode="numeric" placeholder="напр. 120"
+                               value="${isEdit && trip.distance_km != null ? trip.distance_km : ''}">
+                    </label>
+                    <label class="field-label">Куди / примітка
+                        <input type="text" id="tripNote" maxlength="500" placeholder="напр. Львів, забрати генератор"
+                               value="${isEdit ? escapeHtml(trip.note || '') : ''}">
+                    </label>
+                    <div class="form-actions">
+                        <button type="submit" class="primary-btn">${isEdit ? 'Зберегти' : 'Додати'}</button>
+                        <button type="button" class="outline-btn" id="tripCancel">Скасувати</button>
+                    </div>
+                    ${isEdit ? '<button type="button" class="danger-link" id="tripDelete">Видалити виїзд</button>' : ''}
                 </form>
-            `
-            : `<button type="button" class="dw-add-btn" data-cell-key="${cellKey}" title="Додати виїзд для цієї людини на цей день">+</button>`;
+            </div>
+        `;
+        document.body.appendChild(overlay);
 
-        return `<div class="dw-cell">${chipsHtml}${formHtml}</div>`;
-    }
+        const close = () => overlay.remove();
+        document.getElementById('tripModalClose').addEventListener('click', close);
+        document.getElementById('tripCancel').addEventListener('click', close);
+        overlay.addEventListener('click', (ev) => {
+            if (ev.target === overlay) close();
+        });
 
-    onToggleAddForm(e) {
-        this.openCellKey = e.currentTarget.dataset.cellKey;
-        this.render();
-    }
-
-    /** Збереження правок наявного виїзду: час, кілометраж, примітка. */
-    async onSaveInterval(e) {
-        e.preventDefault();
-        const form = e.currentTarget;
-        const shiftId = form.dataset.shiftId;
-        const timeStart = form.querySelector('.dw-start').value;
-        const timeEnd = form.querySelector('.dw-end').value;
-        const kmRaw = form.querySelector('.dw-km').value.trim();
-        const note = form.querySelector('.dw-note').value.trim();
-
-        if (!timeStart || !timeEnd || timeStart === timeEnd) {
-            showBanner('Вкажіть коректний проміжок часу');
-            return;
-        }
-
-        this.editingShiftId = null;
-        try {
-            await Api.put(`/shifts/${shiftId}`, {
-                time_start: timeStart,
-                time_end: timeEnd,
-                distance_km: kmRaw === '' ? null : Number(kmRaw),
-                note,
+        if (isEdit) {
+            document.getElementById('tripDelete').addEventListener('click', async () => {
+                if (!window.confirm('Видалити цей виїзд?')) return;
+                close();
+                await this.deleteTrip(trip.shift_id);
             });
-            showBanner('Виїзд оновлено', 'success');
-        } catch (err) {
-            showBanner(err.message || 'Не вдалося зберегти виїзд');
         }
-        await this.load();
+
+        document.getElementById('tripForm').addEventListener('submit', async (ev) => {
+            ev.preventDefault();
+            const timeStart = document.getElementById('tripStart').value;
+            const timeEnd = document.getElementById('tripEnd').value;
+            const kmRaw = document.getElementById('tripKm').value.trim();
+            const note = document.getElementById('tripNote').value.trim();
+
+            if (!timeStart || !timeEnd || timeStart === timeEnd) {
+                showBanner('Вкажіть коректний проміжок часу');
+                return;
+            }
+            // Порожнє поле - це "не вказано", а не нуль кілометрів.
+            const distanceKm = kmRaw === '' ? null : Number(kmRaw);
+
+            close();
+            if (isEdit) await this.saveTrip(trip.shift_id, { timeStart, timeEnd, distanceKm, note });
+            else await this.createTrip({ userId, date, timeStart, timeEnd, distanceKm, note });
+        });
     }
 
-    async onCreateInterval(e) {
-        e.preventDefault();
-        const form = e.currentTarget;
-        const userId = form.dataset.userId;
-        const date = form.dataset.date;
-        const timeStart = form.querySelector('.dw-start').value;
-        const timeEnd = form.querySelector('.dw-end').value;
-        const kmRaw = form.querySelector('.dw-km').value.trim();
-        const note = form.querySelector('.dw-note').value.trim();
-
-        if (!timeStart || !timeEnd || timeStart === timeEnd) {
-            showBanner('Вкажіть коректний проміжок часу');
-            return;
-        }
-
-        this.openCellKey = null;
+    async createTrip({ userId, date, timeStart, timeEnd, distanceKm, note }) {
         let shift = null;
         try {
             shift = await Api.post('/shifts', {
                 date, time_start: timeStart, time_end: timeEnd, service_type: TRIP_SERVICE_TYPE, max_people: 1,
-                // Порожнє поле - це "не вказано", а не нуль кілометрів.
-                distance_km: kmRaw === '' ? null : Number(kmRaw),
-                note,
+                distance_km: distanceKm, note,
             });
 
             const result = await assignPersonToShift(shift.shift_id, userId);
@@ -277,7 +282,7 @@ class DriverWeek {
                 if (result.warnings.length > 0) {
                     showBanner('Додано. Увага: ' + result.warnings.map((w) => w.message).join('; '), 'error');
                 } else {
-                    showBanner('Інтервал зайнятості додано', 'success');
+                    showBanner('Виїзд додано', 'success');
                 }
             } else {
                 // Людину не вдалось призначити - прибираємо щойно створену порожню
@@ -286,21 +291,36 @@ class DriverWeek {
                 await Api.del(`/shifts/${shift.shift_id}`);
             }
         } catch (err) {
-            showBanner(err.message || 'Не вдалося додати інтервал');
+            showBanner(err.message || 'Не вдалося додати виїзд');
             if (shift) await Api.del(`/shifts/${shift.shift_id}`).catch(() => {});
         }
         await this.load();
     }
 
-    async onRemoveInterval(e) {
-        e.stopPropagation();
-        const recordId = e.currentTarget.dataset.recordId;
-        if (!window.confirm('Прибрати цей інтервал зайнятості?')) return;
+    async saveTrip(shiftId, { timeStart, timeEnd, distanceKm, note }) {
         try {
-            await Api.del(`/schedule/${recordId}`);
-            showBanner('Інтервал прибрано', 'success');
+            await Api.put(`/shifts/${shiftId}`, {
+                time_start: timeStart, time_end: timeEnd, distance_km: distanceKm, note,
+            });
+            showBanner('Виїзд оновлено', 'success');
         } catch (err) {
-            showBanner(err.message || 'Не вдалося прибрати інтервал');
+            showBanner(err.message || 'Не вдалося зберегти виїзд');
+        }
+        await this.load();
+    }
+
+    /**
+     * Видаляємо саму ЗМІНУ, а не лише запис графіка. Виїзд - це зміна на одну
+     * людину, і знявши тільки призначення, ми лишали б у базі порожню зміну:
+     * ця сторінка показує тільки призначені інтервали, тож вона ставала б
+     * невидимим сміттям. Бекенд при видаленні зміни прибирає й призначення.
+     */
+    async deleteTrip(shiftId) {
+        try {
+            await Api.del(`/shifts/${shiftId}`);
+            showBanner('Виїзд видалено', 'success');
+        } catch (err) {
+            showBanner(err.message || 'Не вдалося видалити виїзд');
         }
         await this.load();
     }
