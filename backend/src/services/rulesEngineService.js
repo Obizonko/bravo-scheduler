@@ -442,6 +442,7 @@ async function getWeekBoard(dateFrom, dateTo, serviceType) {
       // єдине джерело даних для неї, тож поля мають доїхати саме тут.
       distance_km: shift.distance_km,
       note: shift.note,
+      escort: shift.escort,
       assignees,
     });
   }

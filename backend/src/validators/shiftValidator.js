@@ -27,6 +27,8 @@ const laneSchema = Joi.number().integer().min(0).max(2).allow(null);
 const distanceSchema = Joi.number().min(0).max(100000).allow(null, '').empty('');
 // Вільна примітка: куди виїзд, що везти, з ким контакт.
 const noteSchema = Joi.string().trim().max(500).allow('', null);
+// Супроводжуючий: імʼя вільним текстом, порожньо = їде сам водій.
+const escortSchema = Joi.string().trim().max(100).allow('', null);
 
 /** time_end === time_start заборонено (нульова/24-год тривалість неоднозначна). time_end < time_start - ОК, перехід через північ. */
 function noZeroLengthShift(value, helpers) {
@@ -62,6 +64,7 @@ const createShiftSchema = Joi.object({
   lane: laneSchema,
   distance_km: distanceSchema,
   note: noteSchema,
+  escort: escortSchema,
 })
   .custom(noZeroLengthShift, 'time_start != time_end')
   .custom(maxNotBelowMin, 'max_people >= min_people')
@@ -87,6 +90,7 @@ const updateShiftSchema = Joi.object({
   lane: laneSchema,
   distance_km: distanceSchema,
   note: noteSchema,
+  escort: escortSchema,
 })
   .min(1)
   .custom(noZeroLengthShift, 'time_start != time_end')

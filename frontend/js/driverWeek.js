@@ -63,6 +63,7 @@ class DriverWeek {
                         time_end: shift.time_end,
                         distance_km: shift.distance_km,
                         note: shift.note,
+                        escort: shift.escort,
                     });
                 }
             }
@@ -176,6 +177,12 @@ class DriverWeek {
                 // Примітка буває довгою (куди виїзд, контакт) - у чіпі один рядок
                 // з обрізанням, повний текст у title.
                 const note = iv.note ? `<span class="dw-chip-note" title="${escapeHtml(iv.note)}">${escapeHtml(iv.note)}</span>` : '';
+                // Супроводжуючий - окремим рядком, а не в шапці чіпа: колонка
+                // на телефоні ~130px, і разом з часом та кілометражем імʼя
+                // ламало б рядок посеред слова.
+                const escort = iv.escort
+                    ? `<span class="dw-chip-escort">+ ${escapeHtml(iv.escort)}</span>`
+                    : '';
                 // Для ліда клікабельний увесь чіп, а не значок: на дотик це
                 // ціль у півсотні пікселів замість десяти.
                 const tag = Session.isLead() ? 'button' : 'div';
@@ -188,6 +195,7 @@ class DriverWeek {
                         <span class="dw-chip-time">${iv.time_start}–${iv.time_end}</span>
                         ${km}
                     </div>
+                    ${escort}
                     ${note}
                 </${tag}>
             `;
@@ -286,6 +294,7 @@ class DriverWeek {
                     time_end: shift.time_end,
                     distance_km: shift.distance_km,
                     note: shift.note,
+                    escort: shift.escort,
                 };
             }
         }
@@ -328,6 +337,10 @@ class DriverWeek {
                         <input type="number" id="tripKm" min="0" step="1" inputmode="numeric" placeholder="напр. 120"
                                value="${isEdit && trip.distance_km != null ? trip.distance_km : ''}">
                     </label>
+                    <label class="field-label">Супроводжуючий
+                        <input type="text" id="tripEscort" maxlength="100" placeholder="напр. Дельтюк"
+                               value="${isEdit ? escapeHtml(trip.escort || '') : ''}">
+                    </label>
                     <label class="field-label">Куди / примітка
                         <input type="text" id="tripNote" maxlength="500" placeholder="напр. Львів, забрати генератор"
                                value="${isEdit ? escapeHtml(trip.note || '') : ''}">
@@ -363,6 +376,7 @@ class DriverWeek {
             const timeEnd = document.getElementById('tripEnd').value;
             const kmRaw = document.getElementById('tripKm').value.trim();
             const note = document.getElementById('tripNote').value.trim();
+            const escort = document.getElementById('tripEscort').value.trim();
 
             if (!timeStart || !timeEnd || timeStart === timeEnd) {
                 showBanner('Вкажіть коректний проміжок часу');
@@ -372,17 +386,17 @@ class DriverWeek {
             const distanceKm = kmRaw === '' ? null : Number(kmRaw);
 
             close();
-            if (isEdit) await this.saveTrip(trip.shift_id, { timeStart, timeEnd, distanceKm, note });
-            else await this.createTrip({ userId, date, timeStart, timeEnd, distanceKm, note });
+            if (isEdit) await this.saveTrip(trip.shift_id, { timeStart, timeEnd, distanceKm, note, escort });
+            else await this.createTrip({ userId, date, timeStart, timeEnd, distanceKm, note, escort });
         });
     }
 
-    async createTrip({ userId, date, timeStart, timeEnd, distanceKm, note }) {
+    async createTrip({ userId, date, timeStart, timeEnd, distanceKm, note, escort }) {
         let shift = null;
         try {
             shift = await Api.post('/shifts', {
                 date, time_start: timeStart, time_end: timeEnd, service_type: TRIP_SERVICE_TYPE, max_people: 1,
-                distance_km: distanceKm, note,
+                distance_km: distanceKm, note, escort,
             });
 
             const result = await assignPersonToShift(shift.shift_id, userId);
@@ -407,10 +421,10 @@ class DriverWeek {
         await this.load();
     }
 
-    async saveTrip(shiftId, { timeStart, timeEnd, distanceKm, note }) {
+    async saveTrip(shiftId, { timeStart, timeEnd, distanceKm, note, escort }) {
         try {
             await Api.put(`/shifts/${shiftId}`, {
-                time_start: timeStart, time_end: timeEnd, distance_km: distanceKm, note,
+                time_start: timeStart, time_end: timeEnd, distance_km: distanceKm, note, escort,
             });
             showBanner('Виїзд оновлено', 'success');
         } catch (err) {

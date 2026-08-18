@@ -27,6 +27,11 @@ const shiftSchema = new Schema(
     // null у distance_km означає "не вказано" - це не те саме, що 0 км.
     distance_km: { type: Number, required: false, default: null, min: 0 },
     note: { type: String, default: '', trim: true, maxlength: 500 },
+    // Хто супроводжує виїзд, окрім водія. Вільний текст, а не посилання на
+    // користувача: супроводжуючим часто буває людина поза системою, а ще це
+    // свідомо НЕ призначення на зміну - воно не займає місце, не перевіряється
+    // рушієм правил і не робить людину зайнятою. Порожньо - звичайна ситуація.
+    escort: { type: String, default: '', trim: true, maxlength: 100 },
   },
   {
     timestamps: true,

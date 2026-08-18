@@ -1405,6 +1405,16 @@ body.wc-col-resizing * {
     white-space: nowrap;
 }
 
+/* Супроводжуючий. Показується повністю, як і примітка: обрізане імʼя гірше
+   за відсутнє, а на телефоні наведення немає, тож title його не врятує. */
+.dw-chip-escort {
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.35;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
 .dw-chip-note {
     font-size: 10px;
     line-height: 1.35;

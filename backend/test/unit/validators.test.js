@@ -68,6 +68,27 @@ describe('shiftValidator — createShiftSchema', () => {
     const { error } = createShiftSchema.validate({ ...base, service_type: 'Кухня' });
     assert.ok(error);
   });
+
+  test('escort is optional — a trip with nobody accompanying the driver is normal', () => {
+    const { error } = createShiftSchema.validate(base);
+    assert.equal(error, undefined);
+  });
+
+  test('escort accepts a name and trims it', () => {
+    const { error, value } = createShiftSchema.validate({ ...base, escort: '  Дельтюк  ' });
+    assert.equal(error, undefined);
+    assert.equal(value.escort, 'Дельтюк');
+  });
+
+  test('escort accepts an empty string — the field was cleared, not left unset', () => {
+    const { error } = createShiftSchema.validate({ ...base, escort: '' });
+    assert.equal(error, undefined);
+  });
+
+  test('rejects an escort name longer than the column allows', () => {
+    const { error } = createShiftSchema.validate({ ...base, escort: 'я'.repeat(101) });
+    assert.ok(error);
+  });
 });
 
 describe('shiftValidator — updateShiftSchema (regression: max/min cross-check was previously lost here)', () => {
@@ -84,6 +105,12 @@ describe('shiftValidator — updateShiftSchema (regression: max/min cross-check 
   test('rejects an empty update body', () => {
     const { error } = updateShiftSchema.validate({});
     assert.ok(error);
+  });
+
+  test('escort can be cleared on update — an empty string is a real value here', () => {
+    const { error, value } = updateShiftSchema.validate({ escort: '' });
+    assert.equal(error, undefined);
+    assert.equal(value.escort, '');
   });
 });
 
