@@ -524,7 +524,44 @@ function initBoardInteractions(scrollEl, opts = {}) {
   scrollEl.dataset.interactionsReady = '1';
 
   // --- 1. Перетягування рамки ---
+  //
+  // Після відпускання дошка продовжує рух за інерцією і плавно гальмує. Без
+  // цього жест був рівно 1:1 з пальцем: тиждень завширшки кілька екранів
+  // доводилось перегортати серією коротких змахів, бо рух зупинявся тієї ж
+  // миті, коли палець відривався. Нативна прокрутка так поводиться сама, але
+  // ми її вимкнули (touch-action:none), тож інерцію рахуємо самі.
   let pan = null;
+  let glide = null; // id кадру анімації гальмування
+
+  const stopGlide = () => {
+    if (glide !== null) {
+      cancelAnimationFrame(glide);
+      glide = null;
+    }
+  };
+
+  /** Швидкість у px/мс; нижче цього порогу рух уже непомітний. */
+  const MIN_GLIDE_SPEED = 0.02;
+  /** Множник загасання за кадр (~60fps): менше - різкіше гальмування. */
+  const GLIDE_DECAY = 0.94;
+
+  const startGlide = (vx, vy) => {
+    if (Math.abs(vx) < MIN_GLIDE_SPEED && Math.abs(vy) < MIN_GLIDE_SPEED) return;
+    let lastFrame = performance.now();
+    const step = (now) => {
+      const dt = Math.min(now - lastFrame, 32); // великий кадр не має давати стрибок
+      lastFrame = now;
+      vx *= GLIDE_DECAY;
+      vy *= GLIDE_DECAY;
+      scrollEl.scrollLeft -= vx * dt;
+      scrollEl.scrollTop -= vy * dt;
+      glide =
+        Math.abs(vx) > MIN_GLIDE_SPEED || Math.abs(vy) > MIN_GLIDE_SPEED
+          ? requestAnimationFrame(step)
+          : null;
+    };
+    glide = requestAnimationFrame(step);
+  };
   scrollEl.addEventListener('pointerdown', (e) => {
     if (e.target.closest('.wc-col-resizer')) return;
 
@@ -539,12 +576,19 @@ function initBoardInteractions(scrollEl, opts = {}) {
     const frame = e.target.closest(frameSelector);
     const surface = frame || (isTouch && !onControl ? scrollEl : null);
     if (!surface) return;
+    stopGlide(); // новий дотик перехоплює керування в анімації гальмування
     pan = {
       id: e.pointerId,
       x: e.clientX,
       y: e.clientY,
       left: scrollEl.scrollLeft,
       top: scrollEl.scrollTop,
+      // Останні координата й час - для миттєвої швидкості на момент відриву.
+      lastX: e.clientX,
+      lastY: e.clientY,
+      lastT: performance.now(),
+      vx: 0,
+      vy: 0,
     };
     // Захоплення вказівника - не критичне: якщо браузер його не дає (вказівник
     // уже відпущено), перетягування все одно працює через слухачі на контейнері.
@@ -560,12 +604,29 @@ function initBoardInteractions(scrollEl, opts = {}) {
     if (!pan || e.pointerId !== pan.id) return;
     scrollEl.scrollLeft = pan.left - (e.clientX - pan.x);
     scrollEl.scrollTop = pan.top - (e.clientY - pan.y);
+
+    const now = performance.now();
+    const dt = now - pan.lastT;
+    if (dt > 0) {
+      // Згладжуємо з попереднім значенням: одне тремтіння пальця перед
+      // відривом інакше визначало б увесь політ.
+      pan.vx = 0.7 * ((e.clientX - pan.lastX) / dt) + 0.3 * pan.vx;
+      pan.vy = 0.7 * ((e.clientY - pan.lastY) / dt) + 0.3 * pan.vy;
+      pan.lastX = e.clientX;
+      pan.lastY = e.clientY;
+      pan.lastT = now;
+    }
   });
 
   const endPan = (e) => {
     if (!pan || (e && e.pointerId !== pan.id)) return;
+    // Пауза перед відривом означає навмисну зупинку, а не кидок - інерція
+    // тоді була б неприємним сюрпризом.
+    const idle = performance.now() - pan.lastT > 120;
+    const { vx, vy } = pan;
     pan = null;
     scrollEl.classList.remove('wc-panning');
+    if (!idle) startGlide(vx, vy);
   };
   scrollEl.addEventListener('pointerup', endPan);
   scrollEl.addEventListener('pointercancel', endPan);

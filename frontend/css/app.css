@@ -1310,6 +1310,10 @@ body.wc-col-resizing * {
 .dw-corner {
     position: sticky;
     left: 0;
+    /* Вище за колонку імен: кутик стоїть на перетині закріпленого стовпця
+       й рядка шапки, тож має перекривати обидва. */
+    z-index: 3;
+    background: var(--card);
 }
 
 .dw-header-cell {
@@ -1323,6 +1327,10 @@ body.wc-col-resizing * {
 .dw-label-cell {
     position: sticky;
     left: 0;
+    /* Без z-index клітинки днів малювались ПОВЕРХ закріпленої колонки, і при
+       гортанні вбік виїзди наїжджали на імена. sticky сам по собі порядку
+       накладання не задає - потрібен явний шар. */
+    z-index: 2;
     background: var(--card);
     font-size: 13px;
     font-weight: 600;
@@ -1541,7 +1549,9 @@ body.wc-col-resizing * {
 button.dw-label-cell--external {
     width: 100%;
     text-align: left;
-    background: none;
+    /* Саме фон, а не none: колонка закріплена, і крізь прозору кнопку було б
+       видно все, що проїжджає під нею. */
+    background: var(--card);
     border: none;
     font-family: inherit;
     font-size: inherit;
