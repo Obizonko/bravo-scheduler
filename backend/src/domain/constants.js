@@ -7,6 +7,11 @@
 
 const SERVICE_TYPES = ['Склад', 'ТЕЦ', 'Поїздка', 'Зовнішня активність'];
 
+// Поїздка - єдина служба, куди допускаються зовнішні водії (models/User.js,
+// is_external). Винесено в константу, щоб це правило жило в одному місці, а не
+// рядковим літералом по сервісах.
+const TRIP_SERVICE_TYPE = 'Поїздка';
+
 const STATUSES = ['Assigned', 'Replacement', 'NeedsReplacement', 'Completed'];
 
 // 'super_admin' раніше існував лише як env-PIN без запису в users - тепер це
@@ -34,4 +39,4 @@ const WORKLOAD_LEVELS = ['peak', 'normal', 'quiet', 'all_hands', 'off_hours'];
  */
 const ACTIVITY_COLORS = ['blue', 'green', 'pink', 'purple', 'orange', 'yellow', 'teal', 'grey'];
 
-module.exports = { SERVICE_TYPES, STATUSES, ROLES, WORKLOAD_LEVELS, ACTIVITY_COLORS };
+module.exports = { SERVICE_TYPES, TRIP_SERVICE_TYPE, STATUSES, ROLES, WORKLOAD_LEVELS, ACTIVITY_COLORS };

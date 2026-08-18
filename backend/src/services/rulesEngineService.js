@@ -6,7 +6,7 @@ const quota = require('./rules/quota');
 const { shiftShortfallFinding } = require('./rules/capacity');
 const time = require('../domain/time');
 const rulesConfig = require('../config/rules');
-const { SERVICE_TYPES } = require('../domain/constants');
+const { SERVICE_TYPES, TRIP_SERVICE_TYPE } = require('../domain/constants');
 const { NotFoundError, ValidationError } = require('../utils/AppError');
 const shiftRepository = require('../repositories/shiftRepository');
 const userRepository = require('../repositories/userRepository');
@@ -64,17 +64,19 @@ async function getShiftAvailability(shiftId) {
 
   const context = await buildDayContext(shift.date);
 
-  return [...context.usersById.values()].map((user) => {
-    const result = rulesEngine.evaluate(context, { shift_id: shiftId, user_id: user.user_id });
-    const conflict = result.violations.find((v) => TIME_CONFLICT_CODES.includes(v.code));
-    return {
-      user_id: user.user_id,
-      name: user.name,
-      is_driver: user.is_driver,
-      available: !conflict,
-      reason: conflict ? conflict.message : null,
-    };
-  });
+  return [...context.usersById.values()]
+    .filter((user) => !user.is_external || shift.service_type === TRIP_SERVICE_TYPE)
+    .map((user) => {
+      const result = rulesEngine.evaluate(context, { shift_id: shiftId, user_id: user.user_id });
+      const conflict = result.violations.find((v) => TIME_CONFLICT_CODES.includes(v.code));
+      return {
+        user_id: user.user_id,
+        name: user.name,
+        is_driver: user.is_driver,
+        available: !conflict,
+        reason: conflict ? conflict.message : null,
+      };
+    });
 }
 
 /**
@@ -261,6 +263,9 @@ async function getPeopleStatus(date, at) {
   const atAbsolute = atPoint.start;
 
   const people = [...context.usersById.values()]
+    // Зовнішні водії - не команда Браво, тож у цьому списку їх немає взагалі
+    // (models/User.js, is_external). Вони існують лише для сторінки "Водії".
+    .filter((user) => !user.is_external)
     .map((user) => {
       const records = (context.schedulesByUserId.get(user.user_id) || []).filter(
         (r) => r.status !== 'Completed'
@@ -361,7 +366,15 @@ async function getServiceBoard(date, serviceType) {
     .sort((a, b) => a.time_start.localeCompare(b.time_start));
 
   const people = [...context.usersById.values()]
-    .map((u) => ({ user_id: u.user_id, name: u.name, is_driver: u.is_driver, role: u.role }))
+    // Як і в getWeekBoard: зовнішні водії потрапляють у список лише для поїздок.
+    .filter((u) => !u.is_external || serviceType === TRIP_SERVICE_TYPE)
+    .map((u) => ({
+      user_id: u.user_id,
+      name: u.name,
+      is_driver: u.is_driver,
+      is_external: u.is_external,
+      role: u.role,
+    }))
     .sort((a, b) => a.name.localeCompare(b.name, 'uk'));
 
   return { date, service_type: serviceType, shifts, people };
@@ -434,8 +447,18 @@ async function getWeekBoard(dateFrom, dateTo, serviceType) {
   }
   for (const list of shiftsByDate.values()) list.sort((a, b) => a.time_start.localeCompare(b.time_start));
 
+  // Зовнішні водії потрапляють у список ЛИШЕ на борді поїздок - саме там вони
+  // й потрібні. Для Складу/ТЕЦ їх немає, тож у вибір "Хто?" вони не втрапляють
+  // навіть якщо фронтенд про них забуде.
   const people = users
-    .map((u) => ({ user_id: u.user_id, name: u.name, is_driver: u.is_driver, role: u.role }))
+    .filter((u) => !u.is_external || serviceType === TRIP_SERVICE_TYPE)
+    .map((u) => ({
+      user_id: u.user_id,
+      name: u.name,
+      is_driver: u.is_driver,
+      is_external: u.is_external,
+      role: u.role,
+    }))
     .sort((a, b) => a.name.localeCompare(b.name, 'uk'));
 
   return {

@@ -74,22 +74,43 @@ class DriverWeek {
         const weekLabel = document.getElementById('weekLabel');
         if (weekLabel) weekLabel.textContent = formatWeekRangeLabel(this.monday);
 
-        const people = this.board.people
+        const drivers = this.board.people
             .filter((p) => p.is_driver)
             .sort((a, b) => a.name.localeCompare(b.name, 'uk'));
+        // Зовнішні водії - окремою групою внизу: вони не з команди, і мішати їх
+        // із ростером означало б втратити цю різницю з першого погляду.
+        const team = drivers.filter((p) => !p.is_external);
+        const external = drivers.filter((p) => p.is_external);
         const intervalsByPerson = this.buildIntervalsByPerson();
         const dates = this.board.days.map((d) => d.date);
+        const span = dates.length + 1;
 
         const headerCells = dates.map((d) => `<div class="dw-header-cell">${formatDayLabel(d)}</div>`).join('');
-        const rowsHtml = people
-            .map((person) => this.rowHtml(person, dates, intervalsByPerson.get(person.user_id) || new Map()))
-            .join('');
+        const rows = (list) =>
+            list
+                .map((person) => this.rowHtml(person, dates, intervalsByPerson.get(person.user_id) || new Map()))
+                .join('');
+
+        const externalBlock = Session.isLead() || external.length
+            ? `
+                <div class="dw-group-row" style="grid-column: span ${span};">
+                    Зовнішні водії - не з команди, у чергуваннях і активностях не беруть участі
+                </div>
+                ${rows(external)}
+                ${Session.isLead()
+                    ? `<div class="dw-group-row dw-group-row--action" style="grid-column: span ${span};">
+                           <button type="button" class="dw-add-external" title="Додати водія не з команди">+ Зовнішній водій</button>
+                       </div>`
+                    : ''}
+            `
+            : '';
 
         this.container.innerHTML = `
             <div class="driver-week-grid">
                 <div class="dw-corner"></div>
                 ${headerCells}
-                ${rowsHtml}
+                ${rows(team)}
+                ${externalBlock}
             </div>
         `;
 
@@ -97,6 +118,14 @@ class DriverWeek {
             btn.addEventListener('click', (e) =>
                 this.openTripModal({ userId: e.currentTarget.dataset.userId, date: e.currentTarget.dataset.date })
             );
+        });
+        const addExternal = this.container.querySelector('.dw-add-external');
+        if (addExternal) addExternal.addEventListener('click', () => this.openExternalModal());
+        this.container.querySelectorAll('.dw-label-cell--external').forEach((cell) => {
+            cell.addEventListener('click', (e) => {
+                const el = e.currentTarget;
+                this.openExternalModal({ userId: el.dataset.userId, name: el.dataset.name });
+            });
         });
         this.container.querySelectorAll('.dw-chip--editable').forEach((chip) => {
             chip.addEventListener('click', (e) => {
@@ -124,8 +153,15 @@ class DriverWeek {
         const cellsHtml = dates
             .map((date) => this.cellHtml(person.user_id, date, byDate.get(date) || []))
             .join('');
+        // Імʼя зовнішнього водія клікабельне - це єдиний спосіб його
+        // перейменувати чи прибрати, бо в списку "Люди" його немає.
+        const label = person.is_external && Session.isLead()
+            ? `<button type="button" class="dw-label-cell dw-label-cell--external"
+                       data-user-id="${person.user_id}" data-name="${escapeHtml(person.name)}"
+                       title="Редагувати зовнішнього водія">${escapeHtml(person.name)}</button>`
+            : `<div class="dw-label-cell${person.is_external ? ' dw-label-cell--external' : ''}">${escapeHtml(person.name)}</div>`;
         return `
-            <div class="dw-label-cell">${person.name}</div>
+            ${label}
             ${cellsHtml}
         `;
     }
@@ -163,6 +199,80 @@ class DriverWeek {
         }
 
         return `<div class="dw-cell">${chipsHtml}<button type="button" class="dw-add-btn" data-user-id="${userId}" data-date="${date}" title="Додати виїзд для цієї людини на цей день">+ Виїзд</button></div>`;
+    }
+
+    /**
+     * Створення/редагування зовнішнього водія. Такої людини немає в списку
+     * "Люди", тож і заводиться, і прибирається вона лише звідси.
+     */
+    openExternalModal({ userId = null, name = '' } = {}) {
+        const isEdit = Boolean(userId);
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.id = 'externalModalOverlay';
+        overlay.innerHTML = `
+            <div class="modal-box modal-box--narrow" role="dialog" aria-modal="true">
+                <div class="modal-header">
+                    <h2>${isEdit ? 'Зовнішній водій' : 'Новий зовнішній водій'}</h2>
+                    <button type="button" class="modal-close-btn" id="extClose">×</button>
+                </div>
+                <p class="modal-subtitle">Не з команди Браво: не потрапляє у список «Люди», у чергування на Складі/ТЕЦ і в активності.</p>
+                <form id="extForm" class="stacked-form">
+                    <label class="field-label">Імʼя
+                        <input type="text" id="extName" value="${escapeHtml(name)}" required minlength="2" maxlength="200" placeholder="напр. Сергій, автобус">
+                    </label>
+                    <div class="form-actions">
+                        <button type="submit" class="primary-btn">${isEdit ? 'Зберегти' : 'Додати'}</button>
+                        <button type="button" class="outline-btn" id="extCancel">Скасувати</button>
+                    </div>
+                    ${isEdit ? '<button type="button" class="danger-link" id="extDelete">Видалити водія</button>' : ''}
+                </form>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        const close = () => overlay.remove();
+        document.getElementById('extClose').addEventListener('click', close);
+        document.getElementById('extCancel').addEventListener('click', close);
+        overlay.addEventListener('click', (ev) => {
+            if (ev.target === overlay) close();
+        });
+
+        if (isEdit) {
+            document.getElementById('extDelete').addEventListener('click', async () => {
+                if (!window.confirm('Видалити цього водія? Його виїзди залишаться, але без виконавця.')) return;
+                close();
+                try {
+                    await Api.del(`/users/${userId}`);
+                    showBanner('Водія видалено', 'success');
+                } catch (err) {
+                    showBanner(err.message || 'Не вдалося видалити водія');
+                }
+                await this.load();
+            });
+        }
+
+        document.getElementById('extForm').addEventListener('submit', async (ev) => {
+            ev.preventDefault();
+            const value = document.getElementById('extName').value.trim();
+            if (value.length < 2) {
+                showBanner('Імʼя має містити щонайменше 2 символи');
+                return;
+            }
+            close();
+            try {
+                if (isEdit) await Api.put(`/users/${userId}`, { name: value });
+                // is_driver обовʼязково: без нього людина не потрапить у цей
+                // грід узагалі, а більше її ніде не видно - вона б зникла.
+                else await Api.post('/users', { name: value, is_driver: true, is_external: true });
+                showBanner(isEdit ? 'Дані оновлено' : 'Зовнішнього водія додано', 'success');
+            } catch (err) {
+                showBanner(err.message || 'Не вдалося зберегти');
+            }
+            await this.load();
+        });
+
+        document.getElementById('extName').focus();
     }
 
     /** Виїзд за shift_id серед уже завантаженого борду - без зайвого запиту до API. */

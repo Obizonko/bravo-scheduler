@@ -1482,3 +1482,66 @@ body.wc-col-resizing * {
 .danger-link:hover {
     text-decoration: underline;
 }
+
+
+/* --- Зовнішні водії (сторінка "Водії") --- */
+
+/* Рядок-роздільник на всю ширину гріда: група починається тут. */
+.dw-group-row {
+    grid-column: 1 / -1;
+    margin-top: 10px;
+    padding: 8px 10px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    background: var(--background);
+    border-radius: 8px;
+    border: 1px dashed var(--border);
+    touch-action: none;
+}
+
+.dw-group-row--action {
+    background: none;
+    border: none;
+    padding: 4px 0 0;
+    margin-top: 4px;
+}
+
+.dw-add-external {
+    background: var(--card);
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    min-height: 44px;
+    padding: 8px 16px;
+    transition: var(--transition);
+}
+
+.dw-add-external:hover {
+    border-color: var(--primary);
+    color: var(--text);
+}
+
+/* Імʼя зовнішнього водія - кнопка, бо редагувати його можна лише звідси. */
+.dw-label-cell--external {
+    font-style: italic;
+    color: var(--text-secondary);
+}
+
+button.dw-label-cell--external {
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: inherit;
+    cursor: pointer;
+    min-height: 44px;
+}
+
+button.dw-label-cell--external:hover {
+    color: var(--text);
+    text-decoration: underline;
+}

@@ -7,14 +7,13 @@ const { ROLES } = require('../domain/constants');
 // для Mongoose-схеми User, де super_admin - валідне значення поля.
 const API_SETTABLE_ROLES = ROLES.filter((r) => r !== 'super_admin');
 
+const boolFlag = Joi.boolean().truthy('true').truthy('TRUE').falsy('false').falsy('FALSE');
+
 const createUserSchema = Joi.object({
   name: Joi.string().min(2).max(200).required(),
-  is_driver: Joi.boolean()
-    .truthy('true')
-    .truthy('TRUE')
-    .falsy('false')
-    .falsy('FALSE')
-    .default(false),
+  is_driver: boolFlag.default(false),
+  // Зовнішній водій - див. коментар у models/User.js.
+  is_external: boolFlag.default(false),
   telegram_id: Joi.string().allow('', null),
   role: Joi.string()
     .valid(...API_SETTABLE_ROLES)
@@ -23,7 +22,8 @@ const createUserSchema = Joi.object({
 
 const updateUserSchema = Joi.object({
   name: Joi.string().min(2).max(200),
-  is_driver: Joi.boolean().truthy('true').truthy('TRUE').falsy('false').falsy('FALSE'),
+  is_driver: boolFlag,
+  is_external: boolFlag,
   telegram_id: Joi.string().allow('', null),
   role: Joi.string().valid(...API_SETTABLE_ROLES),
 }).min(1);

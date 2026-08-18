@@ -12,8 +12,16 @@ class UserService {
     this.repository = repository;
   }
 
+  /**
+   * Список людей команди. Зовнішні водії (is_external) сюди НЕ входять: цей
+   * ендпоінт живить вкладку "Люди" в активностях майстер-плану й таблицю
+   * "Адміни", а зовнішній водій не бере участі ні в тому, ні в тому. Сторінці
+   * "Водії" він і не потрібен - вона бере людей з тижневого борду поїздок,
+   * куди зовнішні пропускаються окремим правилом.
+   */
   async getAll() {
-    return this.repository.findAll();
+    const users = await this.repository.findAll();
+    return users.filter((u) => !u.is_external);
   }
 
   async getById(id) {
